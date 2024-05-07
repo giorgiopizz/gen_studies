@@ -1,0 +1,19 @@
+Universe = vanilla
+executable = run.sh
+#arguments      = 10000 $(Process)
+
+arguments = $(proc) 3 $(ClusterId) $(ProcId) 1 # process name, nevents, random seed, shift in random seed
+
+request_disk   = 1500MB
+
+error   = logs/err_$(ClusterId)_$(ProcId).txt
+output  = logs/out_$(ClusterId)_$(ProcId).txt
+log     = logs/log_$(ClusterId)_$(ProcId).txt
+
+should_transfer_files = YES
+transfer_input_files =  $(proc)_slc7_amd64_gcc700_CMSSW_10_6_19_tarball.tar.xz 
+transfer_output_remaps = "cmsgrid_final.lhe = lhe/$(proc)_$(ClusterId)_$(ProcId).lhe"
+
++JobFlavour = "workday"
+when_to_transfer_output = ON_EXIT
+queue 2 proc in (osww_dim6_cpodd)
