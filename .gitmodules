@@ -1,0 +1,3 @@
+[submodule "pyhf"]
+	path = pyhf
+	url = https://github.com/giorgiopizz/pyhf.git
