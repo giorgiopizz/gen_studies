@@ -142,7 +142,7 @@ def final_plot(input_file, variable, op, scale, formatted):
     ax[1].set_xlabel(formatted)
 
     fig.savefig(
-        f"plots/{scale}_{variable}_{op}.png",
+        f"plots/{scale}_{op}_{variable}.png",
         facecolor="white",
         pad_inches=0.1,
         bbox_inches="tight",
