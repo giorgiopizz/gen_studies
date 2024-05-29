@@ -19,68 +19,84 @@ def get_variables():
         "mjj": {
             "func": lambda events: (events.Jet[:, 0] + events.Jet[:, 1]).mass,
             "axis": hist.axis.Regular(15, 500, 3000, name="mjj"),
+            "formatted": "m_{jj} \; [GeV]",
         },
         "mll": {
             "func": lambda events: (events.Lepton[:, 0] + events.Lepton[:, 1]).mass,
             "axis": hist.axis.Regular(30, 20, 3000, name="mll"),
+            "formatted": "m_{ll} \; [GeV]",
         },
         "mjj:ptj1": {
             "func1": lambda events: (events.Jet[:, 0] + events.Jet[:, 1]).mass,
             "axis1": hist.axis.Regular(10, 200, 3000, name="mjj"),
             "func2": lambda events: events.Jet[:, 0].pt,
             "axis2": hist.axis.Regular(6, 30, 150, name="ptj1"),
+            "formatted": "m_{jj}:p^T_{j1}",
         },
         "detajj": {
             "func": lambda events: abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])),
             "axis": hist.axis.Regular(15, 2.5, 8, name="detajj"),
+            "formatted": "\Delta\eta_{jj}",
         },
         "dphijj": {
             "func": lambda events: abs(events.Jet[:, 0].deltaphi(events.Jet[:, 1])),
             "axis": hist.axis.Regular(30, 0, np.pi, name="dphijj"),
+            "formatted": "\Delta\phi_{jj}",
         },
         "ptj1": {
             "func": lambda events: events.Jet[:, 0].pt,
             "axis": hist.axis.Regular(30, 30, 150, name="ptj1"),
+            "formatted": "p^T_{j1} \; [GeV]",
         },
         "ptj2": {
             "func": lambda events: events.Jet[:, 1].pt,
             "axis": hist.axis.Regular(30, 30, 150, name="ptj2"),
+            "formatted": "p^T_{j2} \; [GeV]",
         },
         "ptl1": {
             "func": lambda events: events.Lepton[:, 0].pt,
             "axis": hist.axis.Regular(30, 25, 150, name="ptl1"),
+            "formatted": "p^T_{l1} \; [GeV]",
         },
         "ptl2": {
             "func": lambda events: events.Lepton[:, 1].pt,
             "axis": hist.axis.Regular(30, 20, 150, name="ptl2"),
+            "formatted": "p^T_{l2} \; [GeV]",
         },
         "ptll": {
             "func": lambda events: (events.Lepton[:, 0] + events.Lepton[:, 1]).pt,
             "axis": hist.axis.Regular(30, 20, 2000, name="ptll"),
+            "formatted": "p^T_{ll} \; [GeV]",
         },
         "etaj1": {
             "func": lambda events: events.Jet[:, 0].eta,
             "axis": hist.axis.Regular(30, 0, 5, name="etaj1"),
+            "formatted": "\eta_{j1}",
         },
         "etaj2": {
             "func": lambda events: events.Jet[:, 1].eta,
             "axis": hist.axis.Regular(30, 0, 5, name="etaj2"),
+            "formatted": "\eta_{j2}",
         },
         "etal1": {
             "func": lambda events: events.Lepton[:, 0].eta,
             "axis": hist.axis.Regular(30, 0, 2.5, name="etal1"),
+            "formatted": "\eta_{l1}",
         },
         "etal2": {
             "func": lambda events: events.Lepton[:, 1].eta,
             "axis": hist.axis.Regular(30, 0, 2.5, name="etal2"),
+            "formatted": "\eta_{l2}",
         },
         "phij1": {
             "func": lambda events: events.Jet[:, 0].phi,
             "axis": hist.axis.Regular(30, 0, np.pi, name="phij1"),
+            "formatted": "\phi_{j1}",
         },
         "phij2": {
             "func": lambda events: events.Jet[:, 1].phi,
             "axis": hist.axis.Regular(30, 0, np.pi, name="phij2"),
+            "formatted": "\phi_{j2}",
         },
         "events": {
             "func": lambda events: ak.ones_like(events.genWeight),

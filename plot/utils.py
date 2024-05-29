@@ -70,10 +70,20 @@ def plot_ratio(h1, h2, ax, label, color, **kwargs):
 
 
 def format_variable_name(variable):
-    return variable
+    variable = variable + ""
+    formatted = "$" + variable + "$"
+    formatted = formatted.replace("eta", "\eta")
+    formatted = formatted.replace("phi", "\phi")
+    formatted = formatted.replace("pt", "p^T")
+
+    if variable.startswith("d"):
+        formatted = formatted.replace("d", "\Delta", 1)
+    formatted = formatted.replace(formatted[-3:-1], "_{" + formatted[-3:-1] + "}")
+
+    return formatted
 
 
-def final_plot(input_file, variable, op, scale):
+def final_plot(input_file, variable, op, scale, formatted):
     # Begin single plot
     fig, ax = plt.subplots(
         2,
@@ -129,7 +139,7 @@ def final_plot(input_file, variable, op, scale):
     ax[1].set_ylim(min_val_ratio, max_val_ratio)
 
     ax[1].set_ylabel("Component / SM")
-    ax[1].set_xlabel(format_variable_name(variable))
+    ax[1].set_xlabel(formatted)
 
     fig.savefig(
         f"plots/{scale}_{variable}_{op}.png",

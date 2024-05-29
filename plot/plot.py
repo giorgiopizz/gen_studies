@@ -21,20 +21,23 @@ get_variables = analysis_cfg.get_variables  # type: ignore # noqa: F821
 ops = analysis_cfg.ops  # type: ignore # noqa: F821
 variables = get_variables()
 
-
 input_file = uproot.open("../analysis/histos.root")
 
-variables = ["mjj", "mll", "detajj", "dphijj", "ptj1"][:]
-scales = ["lin", "log"][:]
-
+ops = ops[:1]
+scales = ["lin", "log"][:1]
 
 os.makedirs("plots", exist_ok=True)
-
 
 with concurrent.futures.ProcessPoolExecutor(max_workers=6) as pool:
     tasks = []
     for variable in variables:
         for op in ops:
+            if "formatted" in variables[variable]:
+                formatted = "$" + variables[variable]["formatted"] + "$"
+            else:
+                formatted = variable + ""
+            print(formatted)
+
             for scale in scales:
                 tasks.append(
                     pool.submit(
@@ -43,6 +46,7 @@ with concurrent.futures.ProcessPoolExecutor(max_workers=6) as pool:
                         variable,
                         op,
                         scale,
+                        formatted,
                     )
                 )
     concurrent.futures.wait(tasks)
