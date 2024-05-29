@@ -4,4 +4,5 @@
 **.pkl
 **.tar.gz
 **.tar.xz
-
+madgraph**
+**__pycache__**

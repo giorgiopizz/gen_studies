@@ -1,7 +1,7 @@
 # LHE studies
 
 ## Analysis configuration
-To run an analysis write a configuration python file like `analysis/osww.py` (always under the analysis folder) where you define:
+To run an analysis write a configuration python file like `configs/osww.py` (always under the `configs` folder) where you define:
 * `xs` 
 * `lumi` 
 * `reweight_card`: path to the reweight card to parse

@@ -10,10 +10,6 @@ import concurrent.futures
 import sys
 import os
 
-if len(sys.argv) != 2:
-    print("Should pass the name of a valid analysis, osww, ...", file=sys.stderr)
-    sys.exit()
-
 analysis_name = sys.argv[1]
 fw_path = os.path.abspath("../")
 sys.path.insert(0, fw_path)
@@ -27,7 +23,12 @@ from analysis.utils import (  # noqa: E402
     read_ops,
 )
 
-exec(f"import {analysis_name} as analysis_cfg")
+if len(sys.argv) != 2:
+    print("Should pass the name of a valid analysis, osww, ...", file=sys.stderr)
+    sys.exit()
+
+
+exec(f"import configs.{analysis_name} as analysis_cfg")
 
 xs = analysis_cfg.xs  # type: ignore # noqa: F821
 reweight_card = analysis_cfg.reweight_card  # type: ignore # noqa: F821
