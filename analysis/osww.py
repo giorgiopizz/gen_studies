@@ -4,12 +4,14 @@ import numpy as np
 
 
 name = "owss"
-right_xs = 0.20933649499999987
+xs = 0.20933649499999987
+lumi = 100.0  # fb^-1
 reweight_card = "/gwpool/users/santonellini/eft/genproductions/bin/MadGraph5_aMCatNLO/folder_osww_dim6_cpodd/osww_dim6_cpodd_reweight_card.dat"
 files_pattern = "/gwteras/cms/store/user/gpizzati/PrivateMC/triennali/osww/OSWW_dim6_cpodd/RunIISummer20UL18NanoAODv9_106X_upgrade2018_realistic_v11_nanoGEN_NANOAODSIM/240508_084113/*/*root"
 limit_files = 5
 nevents_per_file = 10000
 nevents_per_job = 100000
+ops = ["cWtil", "cHWtil", "cHWBtil", "cHBtil", "ctBIm", "ctWIm"]
 
 
 def get_variables():

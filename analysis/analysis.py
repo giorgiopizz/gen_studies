@@ -1,4 +1,4 @@
-# import configparser
+import gc
 import glob
 from math import ceil
 import uproot
@@ -6,7 +6,6 @@ import hist
 import vector
 import awkward as ak
 
-# import numpy as np
 import concurrent.futures
 import sys
 import os
@@ -28,23 +27,9 @@ from analysis.utils import (  # noqa: E402
     read_ops,
 )
 
-# module_path = fw_path + '/' + analysis_name
-# with open() as file:
-#     code = compile(file.read(), module_path, 'exec')
-#     exec(code)
 exec(f"import {analysis_name} as analysis_cfg")
-# from analysis_cfg import (  # noqa: E402 # type: ignore
-#     right_xs,
-#     reweight_card,
-#     files_pattern,
-#     limit_files,
-#     nevents_per_file,
-#     nevents_per_job,
-#     get_variables,
-#     selections,
-# )
 
-right_xs = analysis_cfg.right_xs  # type: ignore # noqa: F821
+xs = analysis_cfg.xs  # type: ignore # noqa: F821
 reweight_card = analysis_cfg.reweight_card  # type: ignore # noqa: F821
 files_pattern = analysis_cfg.files_pattern  # type: ignore # noqa: F821
 limit_files = analysis_cfg.limit_files  # type: ignore # noqa: F821
@@ -52,31 +37,14 @@ nevents_per_file = analysis_cfg.nevents_per_file  # type: ignore # noqa: F821
 nevents_per_job = analysis_cfg.nevents_per_job  # type: ignore # noqa: F821
 get_variables = analysis_cfg.get_variables  # type: ignore # noqa: F821
 selections = analysis_cfg.selections  # type: ignore # noqa: F821
+lumi = analysis_cfg.lumi  # type: ignore # noqa: F821
+ops = analysis_cfg.ops  # type: ignore # noqa: F821
 
-
-# right_xs     = float(config["right_xs"])
-# reweight_card = config["reweight_card"]
-# files_pattern = config["files_pattern"]
-# limit_files = int(config["limit_files"])
-# nevents_per_file = int(config["nevents_per_file"])
-# nevents_per_job = int(config["nevents_per_job"])
 
 vector.register_awkward()
 
 
-# config = configparser.ConfigParser()
-# config.read("config.cfg")
-# config = config["analysis"]
-
-# right_xs = float(config["right_xs"])
-# reweight_card = config["reweight_card"]
-# files_pattern = config["files_pattern"]
-# limit_files = int(config["limit_files"])
-# nevents_per_file = int(config["nevents_per_file"])
-# nevents_per_job = int(config["nevents_per_job"])
-
-
-ops, rwgts = read_ops(reweight_card)
+_, rwgts = read_ops(reweight_card)
 
 
 files = glob.glob(files_pattern)
@@ -215,16 +183,8 @@ def process(chunk):
         "histos": histos,
     }
     del events
-    # results = add_dict(results, result)
+    gc.collect()
     return result
-
-
-# results = {}
-# files = files[:5]
-# nevents_per_file = 10_000
-# nevents_per_job = 50_000
-# nevents_per_file = 1_000
-# nevents_per_job = 10_000
 
 
 local = True
@@ -260,9 +220,8 @@ else:
 
 
 print("\n\n", "Done", results["nevents"], "events")
-lumi = 100.0  # fb^-1
 scale = (
-    right_xs * 1000.0 * lumi / results["sumw"]
+    xs * 1000.0 * lumi / results["sumw"]
 )  # scale histos to xs in fb, multiply by lumi and get number of events
 
 
@@ -299,4 +258,3 @@ for variable_name in variables:
 
 out.close()
 print(ops)
-# print(components)
