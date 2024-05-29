@@ -1,280 +1,302 @@
+# import configparser
 import glob
-import itertools
+from math import ceil
 import uproot
 import hist
 import vector
 import awkward as ak
-import numpy as np
+
+# import numpy as np
+import concurrent.futures
+import sys
+import os
+
+if len(sys.argv) != 2:
+    print("Should pass the name of a valid analysis, osww, ...", file=sys.stderr)
+    sys.exit()
+
+analysis_name = sys.argv[1]
+fw_path = os.path.abspath("../")
+sys.path.insert(0, fw_path)
+
+from analysis.utils import (  # noqa: E402
+    add_dict,
+    add_dict_iterable,
+    create_components,
+    hist_fold,
+    hist_unroll,
+    read_ops,
+)
+
+# module_path = fw_path + '/' + analysis_name
+# with open() as file:
+#     code = compile(file.read(), module_path, 'exec')
+#     exec(code)
+exec(f"import {analysis_name} as analysis_cfg")
+# from analysis_cfg import (  # noqa: E402 # type: ignore
+#     right_xs,
+#     reweight_card,
+#     files_pattern,
+#     limit_files,
+#     nevents_per_file,
+#     nevents_per_job,
+#     get_variables,
+#     selections,
+# )
+
+right_xs = analysis_cfg.right_xs  # type: ignore # noqa: F821
+reweight_card = analysis_cfg.reweight_card  # type: ignore # noqa: F821
+files_pattern = analysis_cfg.files_pattern  # type: ignore # noqa: F821
+limit_files = analysis_cfg.limit_files  # type: ignore # noqa: F821
+nevents_per_file = analysis_cfg.nevents_per_file  # type: ignore # noqa: F821
+nevents_per_job = analysis_cfg.nevents_per_job  # type: ignore # noqa: F821
+get_variables = analysis_cfg.get_variables  # type: ignore # noqa: F821
+selections = analysis_cfg.selections  # type: ignore # noqa: F821
+
+
+# right_xs     = float(config["right_xs"])
+# reweight_card = config["reweight_card"]
+# files_pattern = config["files_pattern"]
+# limit_files = int(config["limit_files"])
+# nevents_per_file = int(config["nevents_per_file"])
+# nevents_per_job = int(config["nevents_per_job"])
 
 vector.register_awkward()
 
 
-def add_dict(d1, d2):
-    if isinstance(d1, dict):
-        d = {}
-        common_keys = set(list(d1.keys())).intersection(list(d2.keys()))
-        for key in common_keys:
-            d[key] = add_dict(d1[key], d2[key])
-        for key in d1:
-            if key in common_keys:
-                continue
-            d[key] = d1[key]
-        for key in d2:
-            if key in common_keys:
-                continue
-            d[key] = d2[key]
+# config = configparser.ConfigParser()
+# config.read("config.cfg")
+# config = config["analysis"]
 
-        return d
-    elif isinstance(d1, np.ndarray):
-        return np.concatenate([d1, d2])
-    elif isinstance(d1, ak.highlevel.Array):
-        return ak.concatenate([d1, d2])
-    else:
-        return d1 + d2
+# right_xs = float(config["right_xs"])
+# reweight_card = config["reweight_card"]
+# files_pattern = config["files_pattern"]
+# limit_files = int(config["limit_files"])
+# nevents_per_file = int(config["nevents_per_file"])
+# nevents_per_job = int(config["nevents_per_job"])
 
 
-def add_dict_iterable(iterable):
-    tmp = -99999
-    for it in iterable:
-        if tmp == -99999:
-            tmp = it
-        else:
-            tmp = add_dict(tmp, it)
-    return tmp
+ops, rwgts = read_ops(reweight_card)
 
 
-def read_ops(filename):
-    with open(filename) as file:
-        lines = file.read().split("\n")
-    lines = list(
-        filter(lambda k: k.startswith("#"), lines)
-    )  # only take comments and not mixed terms (',')
-    rwgts = {}
-    ops = []
-
-    for irwgt, line in enumerate(lines):
-        if "sm" in line.lower():
-            _, op, _ = line.split(" ")
-            rwgts["sm"] = irwgt
-        elif "," not in line:
-            _, op_val, _ = line.split(" ")
-            op, _ = op_val.split("=")
-            ops.append(op)
-            # res.append([op, val, rwgt])
-            rwgts[op_val] = irwgt
-        else:
-            splitted = line.split(" ")
-            ops_val = " ".join(splitted[1:-1])
-            # res.append([op, val, rwgt])
-            rwgts[ops_val] = irwgt
-    return list(set(ops)), rwgts
+files = glob.glob(files_pattern)
+files = files[:limit_files]
 
 
-def create_components(events, active_ops, rwgts):
-    weights = events["LHEReweightingWeight"]
-    new_weights = {}
-    new_weights["sm"] = ak.copy(weights[:, rwgts["sm"]])
-    for op in active_ops:
-        # make sm_lin_quad
-        new_weights[f"sm_lin_quad_{op}"] = ak.copy(weights[:, rwgts[f"{op}=1"]])
-        # make linear
-        new_weights[f"lin_{op}"] = 0.5 * (
-            weights[:, rwgts[f"{op}=1"]] - weights[:, rwgts[f"{op}=-1"]]
-        )
-        # make quad
-        new_weights[f"quad_{op}"] = 0.5 * (
-            weights[:, rwgts[f"{op}=1"]]
-            + weights[:, rwgts[f"{op}=-1"]]
-            - 2 * new_weights["sm"]
-        )
-    for op1, op2 in list(itertools.combinations(active_ops, 2)):
-        _op1, _op2 = op1, op2
-        rwgt_key = f"{op1}=1, {op2}=1"
-        if rwgt_key not in rwgts:
-            rwgt_key = f"{op2}=1, {op1}=1"
-            _op1, _op2 = op2, op1
-        new_weights[f"mixed_{_op1}_{_op2}"] = (
-            weights[:, rwgts[rwgt_key]]
-            - new_weights["sm"]
-            - new_weights[f"lin_{op1}"]
-            - new_weights[f"quad_{op1}"]
-            - new_weights[f"lin_{op2}"]
-            - new_weights[f"quad_{op2}"]
-        )
-    events["components"] = ak.zip(new_weights)
-    return events
-
-
-right_xs = 0.20933649499999987
-
-
-ops, rwgts = read_ops(
-    "/gwpool/users/santonellini/eft/genproductions/bin/MadGraph5_aMCatNLO/folder_osww_dim6_cpodd/osww_dim6_cpodd_reweight_card.dat"
-)
-# print(rwgts)
-
-files = glob.glob("/gwteras/cms/store/user/gpizzati/sara/lhe_root/final*.root")[:30]
-# files = [
-#     f"/gwteras/cms/store/user/gpizzati/sara/lhe_root/out_{i}.root" for i in range(4)
-# ]
-# files = glob.glob("../root/*.root")[:1]
+nfiles_per_job = ceil(nevents_per_job / nevents_per_file)
+njobs = ceil(len(files) / nfiles_per_job)
 
 particle_branches = ["pt", "eta", "phi", "mass", "pdgId", "status"]
-branches = [f"Particle_{k}" for k in particle_branches] + [
+branches = [f"LHEPart_{k}" for k in particle_branches] + [
     "genWeight",
     "LHEReweightingWeight",
 ]
 
-variables = {
-    "mjj": {
-        "func": lambda events: (events.Jet[:, 0] + events.Jet[:, 1]).mass,
-        "axis": hist.axis.Regular(30, 200, 3000, name="mjj"),
-    },
-    "detajj": {
-        "func": lambda events: abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])),
-        "axis": hist.axis.Regular(30, 2.5, 8, name="mjj"),
-    },
-    "dphijj": {
-        "func": lambda events: abs(events.Jet[:, 0].deltaphi(events.Jet[:, 1])),
-        "axis": hist.axis.Regular(30, 0, np.pi, name="mjj"),
-    },
-    "ptj1": {
-        "func": lambda events: events.Jet[:, 0].pt,
-        "axis": hist.axis.Regular(30, 30, 150, name="mjj"),
-    },
-    "events": {
-        "func": lambda events: ak.ones_like(events.genWeight),
-        "axis": hist.axis.Regular(1, 0, 2, name="events"),
-    },
-}
 
+def process(chunk):
+    events = uproot.concatenate(**chunk)
 
-results = {}
-for events in uproot.iterate({k: "Events" for k in files}, filter_name=branches):
-    # create histograms for this iteration
-    histos = {}
-    for variable_name in variables:
-        histos[variable_name] = hist.Hist(
-            variables[variable_name]["axis"],
-            hist.axis.StrCategory([], name="component", growth=True),
-            hist.storage.Weight(),
+    nReweights = ak.num(events.LHEReweightingWeight)
+    if not ak.all(nReweights == len(rwgts)):
+        print("Error for chunk", chunk)
+        print(
+            "Wrong number of rwgts, expected",
+            len(rwgts),
+            "got",
+            nReweights[nReweights != len(rwgts)],
         )
+        return {}
 
-    # # FIXME
-    # events["genWeight"] = 0.20881501800000024 / 1000
+    # create histograms for this iteration
+
     nevents = len(events)
 
     sumw = ak.sum(events.genWeight)
-    # events = create_components(events, ["cWtil", "cHWtil"], rwgts)
     events = create_components(events, ops, rwgts)
 
-    # FIXME
-    events[("components", "tot")] = ak.ones_like(events.genWeight)
-
-    print(events["components"]["sm"] * events["genWeight"])
-
-    particle = ak.zip(
-        {k: events[f"Particle_{k}"] for k in particle_branches}, with_name="Momentum4D"
+    Particle = ak.zip(
+        {k: events[f"LHEPart_{k}"] for k in particle_branches}, with_name="Momentum4D"
     )
-    particle = particle[particle.status == 1]
-    neutrinos_gen = particle[
+    Particle = Particle[Particle.status == 1]
+    events["Particle"] = Particle
+
+    # Define MET
+    neutrinos_gen = events.Particle[
         (
-            (abs(particle.pdgId) == 12)
-            | (abs(particle.pdgId) == 14)
-            | (abs(particle.pdgId) == 16)
+            (abs(events.Particle.pdgId) == 12)
+            | (abs(events.Particle.pdgId) == 14)
+            | (abs(events.Particle.pdgId) == 16)
+        )
+    ]
+    # events["MET"] = neutrinos_gen[:, 0] + neutrinos_gen[:, 1]
+    events["MET"] = ak.sum(neutrinos_gen, axis=1)
+
+    # Remove neutrinos from particle
+    events["Particle"] = events.Particle[
+        (
+            (abs(events.Particle.pdgId) != 12)
+            & (abs(events.Particle.pdgId) != 14)
+            & (abs(events.Particle.pdgId) != 16)
         )
     ]
 
-    particle = particle[
+    # Define leptons no tau
+    events["Lepton"] = events.Particle[
+        (abs(events.Particle.pdgId) == 11) | (abs(events.Particle.pdgId) == 13)
+    ]
+    # Remove events where nleptons != 2
+    events = events[ak.num(events.Lepton) == 2]
+
+    # Define Jets
+    # Everything that is not Lepton or Neutrino
+    events["Jet"] = events.Particle[
         (
-            (abs(particle.pdgId) != 12)
-            & (abs(particle.pdgId) != 14)
-            & (abs(particle.pdgId) != 16)
+            (abs(events.Particle.pdgId) != 11)
+            & (abs(events.Particle.pdgId) != 12)
+            & (abs(events.Particle.pdgId) != 13)
+            & (abs(events.Particle.pdgId) != 14)
+            & (abs(events.Particle.pdgId) != 15)
+            & (abs(events.Particle.pdgId) != 16)
         )
     ]
 
-    # neutrinos_d = {k: events[f'Particle_{k}'] for k in particle_branches if k != 'mass' and k != 'eta'}
-    # neutrinos_d['eta'] = ak.zeros_like(neutrinos_d['pt'])
-    # neutrinos_d['mass'] = ak.zeros_like(neutrinos_d['pt'])
-    # neutrinos = ak.zip(
-    #     neutrinos_d,
-    #     with_name='Momentum4D'
-    # )
-
-    events["Lepton"] = particle[:, [0, 1]]
-    events["Jet"] = particle[:, -2:]
-    sumv = (
-        events["Jet"][:, 0]
-        + events["Jet"][:, 1]
-        + events["Lepton"][:, 0]
-        + events["Lepton"][:, 1]
-    )
-    neutrinos_d = {
-        "px": -sumv.px,
-        "py": -sumv.py,
-        "pz": ak.zeros_like(sumv.pz),
-        "mass": ak.zeros_like(sumv.pz),
-    }
-    events["MET"] = ak.zip(neutrinos_d, with_name="Momentum4D")
-    events["GenMET"] = neutrinos_gen[:, 0] + neutrinos_gen[:, 1]
-
-
-    # # print(repr(events['Lepton']))
-    # print(repr(events["MET"][:].pt))
-    # print(repr(events["MET"][:].phi))
-    # print(repr(events["MET"][:].mass))
-    # print("\n")
-    # print(repr(events["GenMET"][:].pt))
-    # print(repr(events["GenMET"][:].phi))
-    # print(repr(events["GenMET"][:].mass))
-    # # print(repr(events['Jet']))
-
-    # print(ak.num(events["Lepton"]))
-    # print(ak.num(events["Jet"]))
-    
-
+    variables = get_variables()
     # variable definitions
     for variable_name in variables:
-        events[variable_name] = variables[variable_name]["func"](events)
+        if ":" in variable_name:
+            variable_name1, variable_name2 = variable_name.split(":")
+            events[variable_name1] = variables[variable_name]["func1"](events)
+            events[variable_name2] = variables[variable_name]["func2"](events)
+        else:
+            events[variable_name] = variables[variable_name]["func"](events)
 
-    # selections
-    events = events[(
-        ((events.Jet[:, 0].pt > 30.0) & (events.Jet[:, 1].pt > 30.0))
-        & (events.detajj >= 2.5)
-        & (events.mjj >= 200)
-        )]
+    histos = {}
+    for variable_name in variables:
+        if ":" in variable_name:
+            variable_name1, variable_name2 = variable_name.split(":")
+            histos[variable_name] = hist.Hist(
+                variables[variable_name]["axis1"],
+                variables[variable_name]["axis2"],
+                hist.axis.StrCategory([], name="component", growth=True),
+                hist.storage.Weight(),
+            )
+        else:
+            histos[variable_name] = hist.Hist(
+                variables[variable_name]["axis"],
+                hist.axis.StrCategory([], name="component", growth=True),
+                hist.storage.Weight(),
+            )
+
+    events = selections(events)
 
     for variable_name in variables:
         for component_name in ak.fields(events.components):
             weight = events["genWeight"] * events["components"][component_name]
-            histos[variable_name].fill(
-                events[variable_name],
-                component=component_name,
-                weight=weight,
-            )
+
+            if ":" in variable_name:
+                variable_name1, variable_name2 = variable_name.split(":")
+                kwargs = {
+                    variable_name1: events[variable_name1],  # single variable
+                    variable_name2: events[variable_name2],  # single variable
+                    "component": component_name,
+                    "weight": weight,
+                }
+            else:
+                kwargs = {
+                    variable_name: events[variable_name],  # single variable
+                    "component": component_name,
+                    "weight": weight,
+                }
+            histos[variable_name].fill(**kwargs)
+
     result = {
         "nevents": nevents,
         "sumw": sumw,
         "histos": histos,
     }
-    results = add_dict(results, result)
+    del events
+    # results = add_dict(results, result)
+    return result
 
-lumi = 100 # fb^-1
+
+# results = {}
+# files = files[:5]
+# nevents_per_file = 10_000
+# nevents_per_job = 50_000
+# nevents_per_file = 1_000
+# nevents_per_job = 10_000
+
+
+local = True
+if local:
+    results = {}
+    for ijob in range(njobs):
+        start = ijob * nfiles_per_job
+        stop = min((ijob + 1) * nfiles_per_job, len(files))
+        chunk = dict(
+            files={k: "Events" for k in files[start:stop]},
+            filter_name=branches,
+            num_workers=4,
+        )
+        # tasks.append(pool.submit(process, chunk))
+        results = add_dict(results, process(chunk))
+else:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as pool:
+        tasks = []
+        for ijob in range(njobs):
+            start = ijob * nfiles_per_job
+            stop = min((ijob + 1) * nfiles_per_job, len(files))
+            chunk = dict(
+                files={k: "Events" for k in files[start:stop]},
+                filter_name=branches,
+                num_workers=1,
+            )
+            tasks.append(pool.submit(process, chunk))
+        print("waiting for tasks")
+        concurrent.futures.wait(tasks)
+        print("tasks completed")
+        results = add_dict_iterable([task.result() for task in tasks])
+    # print(results)
+
+
+print("\n\n", "Done", results["nevents"], "events")
+lumi = 100.0  # fb^-1
 scale = (
-    right_xs * 1000 * lumi / results["sumw"]
-)  # scale histos to xs in fb, might add lumi
+    right_xs * 1000.0 * lumi / results["sumw"]
+)  # scale histos to xs in fb, multiply by lumi and get number of events
 
-h = list(results["histos"].values())[0]
-components = [h.axes[1].value(i) for i in range(len(h.axes[1].centers))]
+
+first_hist = list(results["histos"].values())[0]
+# Look for components
+components = [
+    first_hist.axes[1].value(i) for i in range(len(first_hist.axes[1].centers))
+]
+variables = get_variables()
+
 out = uproot.recreate("histos.root")
 for variable_name in variables:
     for component in components:
-        print(component)
-        _h = results["histos"][variable_name][:, hist.loc(component)].copy()
-        a = _h.view(True)
+        # print(component)
+        if ":" in variable_name:
+            h = results["histos"][variable_name][:, :, hist.loc(component)].copy()
+        else:
+            h = results["histos"][variable_name][:, hist.loc(component)].copy()
+        # _h is now the histogram we will be saving, will have to scale to xs and fold
+
+        # scale in place
+        a = h.view(True)
         a.value = a.value * scale
         a.variance = a.variance * scale * scale
-        out[f"{variable_name}/histo_{component}"] = _h
 
+        # fold in place
+        hist_fold(h, variables[variable_name].get("fold", 3))
+
+        if ":" in variable_name:
+            # will not unroll in place -> overwrite variable
+            h = hist_unroll(h)
+
+        out[f"{variable_name.replace(':', '_')}/histo_{component}"] = h
+
+out.close()
 print(ops)
 # print(components)
