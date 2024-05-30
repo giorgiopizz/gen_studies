@@ -6,7 +6,7 @@ run:
 
 `"${SHELL}" <(curl -L micro.mamba.pm/install.sh)`
 
-and configure it (the default options are ok).
+and configure it (the default options are ok) and activate micromamba (`source ~/.bashrc`).
 
 Once micromamba is set up:
 
