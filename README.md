@@ -1,5 +1,23 @@
 # LHE studies
 
+## Getting started
+Use micromamba, it's fast. If you don't have it yet:
+run:
+
+`"${SHELL}" <(curl -L micro.mamba.pm/install.sh)`
+
+and configure it (the default options are ok).
+
+Once micromamba is set up:
+
+`micromamba create -f env.yaml`
+
+will create the environment `(lhe)` used for this repo.
+Activate it with:
+
+`micromamba activate lhe`.
+
+
 ## Analysis configuration
 To run an analysis write a configuration python file like `configs/osww.py` (always under the `configs` folder) where you define:
 * `xs` 
