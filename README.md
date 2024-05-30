@@ -10,6 +10,7 @@ To run an analysis write a configuration python file like `configs/osww.py` (alw
 * `nevents_per_file`: the number of events per root file
 * `nevents_per_job`: sort of chunksize, will concatenate enough files to get the requested number of events in each call to process
 * `ops`: list of active operators (subset of the ones specified in the reweight_card)
+* `process`: the process function that will take a chunk and produce histograms
 
 
 ## Analysis

@@ -23,8 +23,8 @@ variables = get_variables()
 
 input_file = uproot.open("../analysis/histos.root")
 
-ops = ops[:1]
-scales = ["lin", "log"][:1]
+# ops = ops[:1]
+scales = ["lin", "log"]  # [:1]
 
 os.makedirs("plots", exist_ok=True)
 
@@ -37,6 +37,8 @@ with concurrent.futures.ProcessPoolExecutor(max_workers=6) as pool:
             else:
                 formatted = variable + ""
             print(formatted)
+
+            variable = variable.replace(":", "_")
 
             for scale in scales:
                 tasks.append(
