@@ -32,7 +32,6 @@ def plot_good(h, ax, label, color, **kwargs):
     ax.stairs(
         content,
         edges,
-        # label=label,
         color=color,
         **kwargs.get("stairs", {}),
     )
@@ -63,7 +62,6 @@ def plot_ratio(h1, h2, ax, label, color, **kwargs):
     ax.stairs(
         ratio,
         edges,
-        # label=label,
         color=color,
         **kwargs.get("stairs", {}),
     )
@@ -92,7 +90,7 @@ def final_plot(input_file, variable, op, scale, formatted):
         gridspec_kw={"height_ratios": [3, 1]},
         figsize=(10, 10),
         dpi=100,
-    )  # dpi=100
+    )
     fig.tight_layout(pad=-0.5)
 
     hep.cms.label("Work in progress", data=False, ax=ax[0], exp="", lumi="100")
@@ -147,3 +145,4 @@ def final_plot(input_file, variable, op, scale, formatted):
         pad_inches=0.1,
         bbox_inches="tight",
     )
+    plt.close()

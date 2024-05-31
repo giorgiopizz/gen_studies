@@ -6,13 +6,9 @@ import vector
 
 import concurrent.futures
 import sys
-import os
 
-analysis_name = sys.argv[1]
-fw_path = os.path.abspath("../")
-sys.path.insert(0, fw_path)
-
-from analysis.utils import (  # noqa: E402
+from analysis.process import process
+from analysis.utils import (
     add_dict,
     add_dict_iterable,
     hist_fold,
@@ -20,10 +16,12 @@ from analysis.utils import (  # noqa: E402
     read_ops,
 )
 
+
 if len(sys.argv) != 2:
     print("Should pass the name of a valid analysis, osww, ...", file=sys.stderr)
     sys.exit()
 
+analysis_name = sys.argv[1]
 
 exec(f"import configs.{analysis_name} as analysis_cfg")
 
@@ -37,8 +35,9 @@ get_variables = analysis_cfg.get_variables  # type: ignore # noqa: F821
 selections = analysis_cfg.selections  # type: ignore # noqa: F821
 lumi = analysis_cfg.lumi  # type: ignore # noqa: F821
 ops = analysis_cfg.ops  # type: ignore # noqa: F821
-process = analysis_cfg.process  # type: ignore # noqa: F821
-
+branches = analysis_cfg.branches  # type: ignore # noqa: F821
+object_definitions = analysis_cfg.object_definitions  # type: ignore # noqa: F821
+selections = analysis_cfg.selections  # type: ignore # noqa: F821
 
 vector.register_awkward()
 
@@ -49,11 +48,20 @@ _, rwgts = read_ops(reweight_card)
 files = glob.glob(files_pattern)
 files = files[:limit_files]
 
+if len(files) == 0:
+    print(
+        "Could not find any files with the pattern provided",
+        files_pattern,
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 
 nfiles_per_job = ceil(nevents_per_job / nevents_per_file)
 njobs = ceil(len(files) / nfiles_per_job)
 
 
+process_args = (branches, rwgts, ops, object_definitions, get_variables, selections)
 local = True
 if local:
     results = {}
@@ -64,7 +72,8 @@ if local:
             files={k: "Events" for k in files[start:stop]},
             num_workers=2,
         )
-        results = add_dict(results, process(chunk, rwgts))
+
+        results = add_dict(results, process(chunk, *process_args))
 else:
     with concurrent.futures.ProcessPoolExecutor(max_workers=10) as pool:
         tasks = []
@@ -75,7 +84,7 @@ else:
                 files={k: "Events" for k in files[start:stop]},
                 num_workers=1,
             )
-            tasks.append(pool.submit(process, chunk, rwgts))
+            tasks.append(pool.submit(process, chunk, *process_args))
         print("waiting for tasks")
         concurrent.futures.wait(tasks)
         print("tasks completed")
