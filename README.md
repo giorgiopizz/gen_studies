@@ -1,6 +1,8 @@
 # LHE studies
 
 ## Getting started
+
+### Micromamba with python3.10
 Use micromamba, it's fast. If you don't have it yet:
 run:
 
@@ -25,18 +27,23 @@ You can source from whatever directory e.g.:
 
 `cd analysis; source ../setup.sh` 
 
+### Install gen_studies
+It's sufficient to run 
+`pip install -e .` in gen_studies
+
 
 ## Analysis configuration
-To run an analysis write a configuration python file like `configs/osww.py` (always under the `configs` folder) where you define:
-* `xs` 
+To run an analysis write a configuration python file like `configs/osww/config.py` (always under the `configs` folder) where you define:
 * `lumi` 
-* `reweight_card`: path to the reweight card to parse
-* `files_pattern`: pattern to be used with glob to get all the files
-* `limit_files`: the max number of files to process
-* `nevents_per_file`: the number of events per root file
-* `nevents_per_job`: sort of chunksize, will concatenate enough files to get the requested number of events in each call to process
-* `ops`: list of active operators (subset of the ones specified in the reweight_card)
-<!-- * `process`: the process function that will take a chunk and produce histograms -->
+* `samples` dictionary where each key is a sample and has the structure:
+    * `xs` 
+    * `files_pattern`: pattern to be used with glob to get all the files
+    * `limit_files`: the max number of files to process
+    * `nevents_per_file`: the number of events per root file
+    * `nevents_per_job`: sort of chunksize, will concatenate enough files to get the requested number of events in each call to process
+    * `eft`: can be an empty dict for samples with no eft
+        * `reweight_card`: path to the reweight card to parse
+        * `ops`: list of active operators (subset of the ones specified in the reweight_card)
 * `branches`: the subset of branches that will be read from all the root files 
 * `object_selections`: a function that takes the events (as awkward array) and creates all the collections and columns needed for your analysis
 * `selections`: a function that takes the events and returns a subset of them based on some cuts
@@ -62,13 +69,13 @@ def get_variables():
     }
 ```
 
+* `scales`
+* `get_plot(op)`
+
 
 
 ## Analysis
-Run in the `analysis` folder the analysis with `python run.py analysis_name` 
+Run in the `configs/analysis_name/` folder the analysis with `run-analyis` 
 
 ## Plot
-Run in the `plot` folder the plots with `python run.py analysis_name` 
-
-
-
+Run in the `configs/analysis_name/` folder the plots with `run-plot` 

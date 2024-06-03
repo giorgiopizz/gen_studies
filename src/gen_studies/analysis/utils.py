@@ -1,7 +1,8 @@
+import itertools
+
+import awkward as ak
 import hist
 import numpy as np
-import awkward as ak
-import itertools
 
 
 def add_dict(d1, d2):
@@ -103,7 +104,8 @@ def create_components(events, active_ops, rwgts):
 def hist_move_content(h, ifrom, ito):
     """
     Moves content of a histogram from `ifrom` bin to `ito` bin.
-    Content and sumw2 of bin `ito` will be the sum of the original `ibin` and `ito`.
+    Content and sumw2 of bin `ito` will be the sum of the original `ibin`
+    and `ito`.
     Content and sumw2 of bin `ifrom` will be 0.
     Modifies in place the histogram.
 
@@ -117,7 +119,8 @@ def hist_move_content(h, ifrom, ito):
         the index of the bin where content will be the sum
     """
     dimension = len(h.axes)
-    # numpy view is a numpy array containing two keys, value and variances for each bin
+    # numpy view is a numpy array containing two keys, value
+    # and variances for each bin
     numpy_view = h.view(True)
     content = numpy_view.value
     sumw2 = numpy_view.variance
@@ -201,7 +204,9 @@ def hist_unroll(h):
     numpy_view = h.view()  # no under/overflow!
     nx = numpy_view.shape[0]
     ny = numpy_view.shape[1]
-    h_unroll = hist.Hist(hist.axis.Regular(nx * ny, 0, nx * ny), hist.storage.Weight())
+    h_unroll = hist.Hist(
+        hist.axis.Regular(nx * ny, 0, nx * ny), hist.storage.Weight()
+    )
 
     numpy_view_unroll = h_unroll.view()
     numpy_view_unroll.value = numpy_view.value.flatten()
