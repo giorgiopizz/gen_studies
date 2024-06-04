@@ -1,13 +1,14 @@
 [build-system]
 # requires = ["setuptools >= 61.0"]
 # build-backend = "setuptools.build_meta"
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "gen_studies"
 description = "Scripts and configurations of various analysis at gen level for EFT"
-version = "2024.6.1"
+# version = "2024.6.1"
+dynamic = ["version"]
 dependencies = [
     "awkward==2.6.3",
     "awkward-cpp==32",
@@ -66,3 +67,13 @@ quote-style = "double"
 indent-style = "space"
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[tool.hatch.version]
+path = "src/gen_studies/__init__.py"
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/gen_studies/version.py"
+
+# [tool.hatch.version]
+# source = "vcs"
