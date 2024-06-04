@@ -5,6 +5,7 @@ import sys
 from math import ceil
 
 import hist
+import numpy as np
 import uproot
 import vector
 
@@ -29,11 +30,12 @@ def main():
 
     analysis_dict = analysis_cfg.__dict__  # type: ignore # noqa: F821
     get_variables = analysis_dict["get_variables"]
-    selections = analysis_dict["selections"]
+    get_regions = analysis_dict["get_regions"]
+    get_variations = analysis_dict["get_variations"]
+    systematics = analysis_dict["systematics"]
     lumi = analysis_dict["lumi"]
     branches = analysis_dict["branches"]
     object_definitions = analysis_dict["object_definitions"]
-    selections = analysis_dict["selections"]
     runner = analysis_dict["runner"]
     samples = analysis_dict["samples"]
 
@@ -78,7 +80,9 @@ def main():
             branches,
             object_definitions,
             get_variables,
-            selections,
+            # selections,
+            get_regions,
+            get_variations,
         )
 
         if doEft:
@@ -112,9 +116,7 @@ def main():
                         files={k: "Events" for k in files[start:stop]},
                         num_workers=1,
                     )
-                    tasks.append(
-                        pool.submit(process, chunk, *process_args, eft)
-                    )
+                    tasks.append(pool.submit(process, chunk, *process_args, eft))
                 print("waiting for tasks")
                 concurrent.futures.wait(tasks)
                 print("tasks completed")
@@ -131,6 +133,10 @@ def main():
         )
 
     variables = get_variables()
+    variations = get_variations()
+    regions = get_regions()
+    components = {}
+
     out = uproot.recreate("histos.root")
     print("Postprocessing and saving histos")
     for sample_name in samples:
@@ -143,40 +149,139 @@ def main():
 
         first_hist = list(result["histos"].values())[0]
         # Look for components
-        components = [
-            first_hist.axes[1].value(i)
-            for i in range(len(first_hist.axes[1].centers))
+        components[sample_name] = [
+            first_hist.axes[-1].value(i)
+            for i in range(len(first_hist.axes[-1].centers))
         ]
 
         for variable_name in variables:
-            for component in components:
-                # print(component)
-                if ":" in variable_name:
-                    h = result["histos"][variable_name][
-                        :, :, hist.loc(component)
-                    ].copy()
-                else:
-                    h = result["histos"][variable_name][
-                        :, hist.loc(component)
-                    ].copy()
-                # h is now the histogram we will be saving
-                # will have to scale to xs and fold
+            for region_name in regions:
+                for component in components[sample_name]:
+                    for variation_name in variations:
+                        if component != "sm" and variation_name != "nominal":
+                            continue
+                        # print(component)
+                        h_slice = (
+                            hist.loc(variation_name),
+                            hist.loc(region_name),
+                            hist.loc(component),
+                        )
+                        if ":" in variable_name:
+                            h_slice = (
+                                slice(None),
+                                slice(None),
+                            ) + h_slice
+                        else:
+                            h_slice = (slice(None),) + h_slice
 
-                # scale in place
-                a = h.view(True)
-                a.value = a.value * scale
-                a.variance = a.variance * scale * scale
+                        # print(h_slice)
+                        h = result["histos"][variable_name][h_slice].copy()
+                        # h is now the histogram we will be saving
+                        # will have to scale to xs and fold
 
-                # fold in place
-                hist_fold(h, variables[variable_name].get("fold", 3))
+                        # scale in place
+                        a = h.view(True)
+                        a.value = a.value * scale
+                        a.variance = a.variance * scale * scale
 
-                if ":" in variable_name:
-                    # will not unroll in place -> overwrite variable
-                    h = hist_unroll(h)
-                good_variable = variable_name.replace(":", "_")
-                out[f"{good_variable}/histo_{sample_name}_{component}"] = h
-        print("Saved components", ", ".join(components))
+                        # fold in place
+                        hist_fold(h, variables[variable_name].get("fold", 3))
+
+                        if ":" in variable_name:
+                            # will not unroll in place -> overwrite variable
+                            h = hist_unroll(h)
+                        good_variable = variable_name.replace(":", "_")
+                        final_name = f"{region_name}/{good_variable}/"
+                        final_name += f"histo_{sample_name}_{component}"
+                        if variation_name != "nominal":
+                            final_name += f"_{variation_name}"
+                        out[final_name] = h
+        print("Saved components", ", ".join(components[sample_name]))
     out.close()
+
+    print("Post processing systematics")
+    out = uproot.update("histos.root")
+    for sample_name in samples:
+        for variable_name in variables:
+            for region_name in regions:
+                _out = out[f"{region_name}/{good_variable}/"]
+                for component in components[sample_name]:
+                    if component != "sm":
+                        continue
+                    for systematic in systematics:
+                        if systematics[systematic]["kind"] not in [
+                            "weight_envelope",
+                            "weight_rms",
+                            "weight_square",
+                        ]:
+                            continue
+                        histos_to_process = systematics[systematic]["samples"][
+                            sample_name
+                        ]
+                        good_variable = variable_name.replace(":", "_")
+                        # final_name = f"{region_name}/{good_variable}/"
+                        final_name = ""
+                        final_name += f"histo_{sample_name}_{component}"
+
+                        h_nominal = _out[final_name].to_hist().copy()
+                        h_up = h_nominal.copy()
+                        h_do = h_nominal.copy()
+                        _variations = np.empty(
+                            shape=(
+                                len(histos_to_process),
+                                len(h_nominal.axes[0].centers) + 2,
+                            ),
+                            dtype=np.float64,
+                        )
+                        for i, histo_to_process in enumerate(histos_to_process):
+                            _final_name = final_name + f"_{histo_to_process}"
+                            _variations[i, :] = _out[_final_name].values(True)
+                        vnominal = h_nominal.values(True)
+                        if systematics[systematic]["kind"].endswith("envelope"):
+                            arrup = np.max(_variations, axis=0)
+                            arrdo = np.min(_variations, axis=0)
+                        elif systematics[systematic]["kind"].endswith("rms"):
+                            arrnom = np.tile(vnominal, (_variations.shape[0], 1))
+                            arrv = np.sqrt(
+                                np.mean(np.square(_variations - arrnom), axis=0)
+                            )
+                            arrup = vnominal + arrv
+                            arrdo = vnominal - arrv
+                        elif systematics[systematic]["kind"].endswith("square"):
+                            arrnom = np.tile(vnominal, (_variations.shape[0], 1))
+                            arrup = vnominal + np.sum(
+                                np.where(
+                                    _variations >= arrnom,
+                                    np.square(_variations - arrnom),
+                                    0.0,
+                                ),
+                                axis=0,
+                            )
+                            arrdo = vnominal - np.sum(
+                                np.where(
+                                    _variations >= arrnom,
+                                    np.square(_variations - arrnom),
+                                    0.0,
+                                ),
+                                axis=0,
+                            )
+
+                        hview = h_up.view(True)
+                        hview.value = arrup.copy()
+                        hview.variance = arrup.copy()
+
+                        hview = h_do.view(True)
+                        hview.value = arrdo.copy()
+                        hview.variance = arrdo.copy()
+
+                        for histo_to_process in histos_to_process:
+                            _final_name = final_name + f"_{histo_to_process}"
+                            del _out[_final_name]
+
+                        _final_name = final_name + f"_{systematic}Up"
+                        _out[_final_name] = h_up
+                        _final_name = final_name + f"_{systematic}Down"
+                        _out[_final_name] = h_do
 
 
 if __name__ == "__main__":

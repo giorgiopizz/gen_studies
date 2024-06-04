@@ -30,6 +30,8 @@ particle_branches = ["pt", "eta", "phi", "mass", "pdgId", "status"]
 branches = [f"LHEPart_{k}" for k in particle_branches] + [
     "genWeight",
     "LHEReweightingWeight",
+    "LHEScaleWeight",
+    "LHEPdfWeight",
 ]
 
 
@@ -91,9 +93,7 @@ def get_variables():
             "formatted": r"m_{jj} \; [GeV]",
         },
         "mll": {
-            "func": lambda events: (
-                events.Lepton[:, 0] + events.Lepton[:, 1]
-            ).mass,
+            "func": lambda events: (events.Lepton[:, 0] + events.Lepton[:, 1]).mass,
             "axis": hist.axis.Regular(30, 20, 3000, name="mll"),
             "formatted": r"m_{ll} \; [GeV]",
         },
@@ -105,16 +105,12 @@ def get_variables():
             "formatted": r"m_{jj}\,:\,p^T_{j1}",
         },
         "detajj": {
-            "func": lambda events: abs(
-                events.Jet[:, 0].deltaeta(events.Jet[:, 1])
-            ),
+            "func": lambda events: abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])),
             "axis": hist.axis.Regular(15, 2.5, 8, name="detajj"),
             "formatted": r"\Delta\eta_{jj}",
         },
         "dphijj": {
-            "func": lambda events: abs(
-                events.Jet[:, 0].deltaphi(events.Jet[:, 1])
-            ),
+            "func": lambda events: abs(events.Jet[:, 0].deltaphi(events.Jet[:, 1])),
             "axis": hist.axis.Regular(30, 0, np.pi, name="dphijj"),
             "formatted": r"\Delta\phi_{jj}",
         },
@@ -139,9 +135,7 @@ def get_variables():
             "formatted": r"p^T_{l2} \; [GeV]",
         },
         "ptll": {
-            "func": lambda events: (
-                events.Lepton[:, 0] + events.Lepton[:, 1]
-            ).pt,
+            "func": lambda events: (events.Lepton[:, 0] + events.Lepton[:, 1]).pt,
             "axis": hist.axis.Regular(30, 20, 2000, name="ptll"),
             "formatted": r"p^T_{ll} \; [GeV]",
         },
@@ -182,21 +176,95 @@ def get_variables():
     }
 
 
-def selections(events):
-    return events[
-        ((events.Jet[:, 0].pt > 30.0) & (events.Jet[:, 1].pt > 30.0))
-        & (abs(events.detajj) >= 2.5)
-        & (events.mjj >= 500)
-        & (events.mll >= 20)
-        & (events.ptl1 >= 25)
-        & (events.ptl2 >= 20)
-        & (events.ptj1 >= 30)
-        & (events.ptj2 >= 30)
-        & (abs(events.Jet[:, 0].eta) < 5)
-        & (abs(events.Jet[:, 1].eta) < 5)
-        & (abs(events.Lepton[:, 0].eta) < 2.5)
-        & (abs(events.Lepton[:, 1].eta) < 2.5)
-    ]
+def get_variations():
+    variations = {
+        "nominal": {
+            "switches": [],
+            "func": lambda events: events,
+        },
+    }
+
+    # QCDScales
+    def wrapper(variation_idx, weight_idx):
+        def func(events):
+            events[f"weight_QCDScale_{variation_idx}"] = (
+                events.genWeight[:] * events.LHEScaleWeight[:, weight_idx]
+            )
+            return events
+
+        return func
+
+    variation_idx = 0
+    for weight_idx in [0, 1, 3, 4, 6, 7]:
+        variations[f"QCDScale_{variation_idx}"] = {
+            "switches": [
+                ("genWeight", f"weight_QCDScale_{variation_idx}"),
+            ],
+            "func": wrapper(variation_idx, weight_idx),
+        }
+        variation_idx += 1
+
+    # PDF
+    def wrapper(variation_idx, weight_idx):
+        def func(events):
+            events[f"weight_PDF_{variation_idx}"] = (
+                events.genWeight[:] * events.LHEPdfWeight[:, weight_idx]
+            )
+            return events
+
+        return func
+
+    variation_idx = 0
+    for weight_idx in range(1, 101):
+        variations[f"PDF_{variation_idx}"] = {
+            "switches": [
+                ("genWeight", f"weight_PDF_{variation_idx}"),
+            ],
+            "func": wrapper(variation_idx, weight_idx),
+        }
+        variation_idx += 1
+
+    return variations
+
+
+systematics = {
+    "QCDScale": {
+        # "name": "PDF",
+        "kind": "weight_envelope",
+        # "type": "shape",
+        # "AsLnN": "0",
+        "samples": {sample: [f"QCDScale_{i}" for i in range(6)] for sample in samples},
+    },
+    "PDF": {
+        # "name": "PDF",
+        "kind": "weight_square",
+        # "type": "shape",
+        # "AsLnN": "0",
+        "samples": {sample: [f"PDF_{i}" for i in range(100)] for sample in samples},
+    },
+}
+
+
+def get_regions():
+    def sr(events):
+        return (
+            ((events.Jet[:, 0].pt > 30.0) & (events.Jet[:, 1].pt > 30.0))
+            & (abs(events.detajj) >= 2.5)
+            & (events.mjj >= 500)
+            & (events.mll >= 20)
+            & (events.ptl1 >= 25)
+            & (events.ptl2 >= 20)
+            & (events.ptj1 >= 30)
+            & (events.ptj2 >= 30)
+            & (abs(events.Jet[:, 0].eta) < 5)
+            & (abs(events.Jet[:, 1].eta) < 5)
+            & (abs(events.Lepton[:, 0].eta) < 2.5)
+            & (abs(events.Lepton[:, 1].eta) < 2.5)
+        )
+
+    return {
+        "sr": sr,
+    }
 
 
 # Plot config

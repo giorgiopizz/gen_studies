@@ -67,9 +67,7 @@ def read_events(chunk, branches):
         file.close()
         return events
     else:
-        raise Exception(
-            'Could not parse chunk, "files" nor "file" found', chunk
-        )
+        raise Exception('Could not parse chunk, "files" nor "file" found', chunk)
 
 
 def process(
@@ -78,7 +76,9 @@ def process(
     branches,
     object_definitions,
     get_variables,
-    selections,
+    # selections,
+    get_regions,
+    get_variations,
     eft={},
 ):
     events = read_events(chunk, branches)
@@ -122,45 +122,70 @@ def process(
     # Create histograms
     histos = {}
     for variable_name in variables:
+        default_axes = [
+            hist.axis.StrCategory([], name="variation", growth=True),
+            hist.axis.StrCategory([], name="region", growth=True),
+            hist.axis.StrCategory([], name="component", growth=True),
+            hist.storage.Weight(),
+        ]
+
         if ":" in variable_name:
             variable_name1, variable_name2 = variable_name.split(":")
             histos[variable_name] = hist.Hist(
                 variables[variable_name]["axis1"],
                 variables[variable_name]["axis2"],
-                hist.axis.StrCategory([], name="component", growth=True),
-                hist.storage.Weight(),
+                *default_axes,
             )
         else:
             histos[variable_name] = hist.Hist(
-                variables[variable_name]["axis"],
-                hist.axis.StrCategory([], name="component", growth=True),
-                hist.storage.Weight(),
+                variables[variable_name]["axis"], *default_axes
             )
 
     # Select events
-    events = selections(events)
+    regions = get_regions()
+    for region_name in regions:
+        events[region_name] = regions[region_name](events)
+
+    variations = get_variations()
+    for variation_name in variations:
+        events = variations[variation_name]["func"](events)
+
+    originalEvents = ak.copy(events)
 
     # Fill each histogram
-    for variable_name in variables:
-        for component_name in ak.fields(events.components):
-            weight = events["genWeight"] * events["components"][component_name]
+    for variation_name in variations:
+        events = ak.copy(originalEvents)
+        for switch in variations[variation_name]["switches"]:
+            if len(switch) == 2:
+                # print(switch)
+                variation_dest, variation_source = switch
+                events[variation_dest] = events[variation_source]
 
-            if ":" in variable_name:
-                variable_name1, variable_name2 = variable_name.split(":")
-                kwargs = {
-                    variable_name1: events[variable_name1],  # single variable
-                    variable_name2: events[variable_name2],  # single variable
-                    "component": component_name,
-                    "weight": weight,
-                }
-            else:
-                kwargs = {
-                    variable_name: events[variable_name],  # single variable
-                    "component": component_name,
-                    "weight": weight,
-                }
+        for region_name in regions:
+            masked_events = events[events[region_name]]
+            for variable_name in variables:
+                for component_name in ak.fields(events.components):
+                    if component_name != "sm" and variation_name != "nominal":
+                        continue
+                    weight = (
+                        masked_events["genWeight"]
+                        * masked_events["components"][component_name]
+                    )
+                    kwargs = {
+                        "variation": variation_name,
+                        "region": region_name,
+                        "component": component_name,
+                        "weight": weight,
+                    }
 
-            histos[variable_name].fill(**kwargs)
+                    if ":" in variable_name:
+                        variable_name1, variable_name2 = variable_name.split(":")
+                        kwargs[variable_name1] = masked_events[variable_name1]
+                        kwargs[variable_name2] = masked_events[variable_name2]
+                    else:
+                        kwargs[variable_name] = masked_events[variable_name]
+
+                    histos[variable_name].fill(**kwargs)
 
     result = {
         sample_name: {

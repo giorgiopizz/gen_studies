@@ -36,10 +36,13 @@ packages = ["src/gen_studies"]
 [project.scripts]
 run-analysis = "gen_studies.analysis.run:main"
 run-plot = "gen_studies.plot.run:main"
+run-plot-variations = "gen_studies.plot.plot_variations:main"
+# fit-cards = "gen_studies.fit.datacards:main"
+# fit-plot = "gen_studies.fit.plot:main"
 
 [tool.ruff]
 src = ["src/gen_studies"]
-line-length = 80
+line-length = 88
 indent-width = 4
 target-version = "py310"
 

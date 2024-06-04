@@ -48,9 +48,7 @@ def plot_ratio(h1, h2, ax, label, color, **kwargs):
     err1 = h1.variances()
     err2 = h2.variances()
 
-    err = np.square(ratio) * (
-        np.power(err1 / cont1, 2) + np.power(err2 / cont2, 2)
-    )
+    err = np.square(ratio) * (np.power(err1 / cont1, 2) + np.power(err2 / cont2, 2))
 
     if kwargs.get("plot_errors", True):
         ax.errorbar(
@@ -109,9 +107,7 @@ def format_variable_name(variable):
 
     if variable.startswith("d"):
         formatted = formatted.replace("d", r"\Delta", 1)
-    formatted = formatted.replace(
-        formatted[-3:-1], "_{" + formatted[-3:-1] + "}"
-    )
+    formatted = formatted.replace(formatted[-3:-1], "_{" + formatted[-3:-1] + "}")
 
     return formatted
 
@@ -141,7 +137,9 @@ def final_bkg_plot(
     input_file,
     samples,
     plot_dict,
+    region,
     variable,
+    systematics,
     op,
     scale,
     formatted,
@@ -160,18 +158,21 @@ def final_bkg_plot(
     )
     fig.tight_layout(pad=-0.5)
 
-    hep.cms.label(
-        "Work in progress", data=False, ax=ax[0], exp="", lumi=str(lumi)
-    )
+    hep.cms.label("Work in progress", data=False, ax=ax[0], exp="", lumi=str(lumi))
 
     hlast = 0
     hlast_bkg = 0
+    vlast_syst_up = 0
+    vlast_syst_do = 0
     for isample, sample_name in enumerate(plot_dict):
         # print(sample_name)
         isSignal = plot_dict[sample_name].get("isSignal", False)
 
         color = plot_dict[sample_name].get("color", "black")
-        h_sm = input_file[variable][f"histo_{sample_name}"].to_hist()
+        label = plot_dict[sample_name]["name"]
+        final_name = f"{region}/{variable}/histo_{sample_name}"
+        h_sm = input_file[final_name].to_hist()
+
         if isinstance(hlast, int):
             hlast = h_sm.copy()
         else:
@@ -181,7 +182,32 @@ def final_bkg_plot(
                 hlast_bkg = h_sm.copy()
             else:
                 hlast_bkg += h_sm.copy()
-        label = plot_dict[sample_name]["name"]
+
+            # include systematics+stat
+            for syst in list(systematics.keys()) + ["stat"]:
+                if syst == "stat":
+                    vvar_up = h_sm.variances()
+                    vvar_do = h_sm.variances()
+                else:
+                    _final_name = final_name + f"_{syst}Up"
+                    vvar_up = np.square(
+                        input_file[_final_name].values() - h_sm.values()
+                    )
+                    _final_name = final_name + f"_{syst}Down"
+                    vvar_do = np.square(
+                        input_file[_final_name].values() - h_sm.values()
+                    )
+
+                if isinstance(vlast_syst_up, int):
+                    vlast_syst_up = vvar_up.copy()
+                else:
+                    vlast_syst_up += vvar_up.copy()
+
+                if isinstance(vlast_syst_do, int):
+                    vlast_syst_do = vvar_do.copy()
+                else:
+                    vlast_syst_do += vvar_do.copy()
+
         centers = hlast.axes[0].centers
         edges = hlast.axes[0].edges
         content = hlast.values()
@@ -224,11 +250,13 @@ def final_bkg_plot(
             **kwargs,
         )
     content = hlast_bkg.values()
-    err = np.sqrt(hlast_bkg.variances())
+    # err = np.sqrt(hlast_bkg.variances())
+    vvar_up = np.sqrt(vvar_up)
+    vvar_do = np.sqrt(vvar_do)
     ax[0].stairs(
-        content + err,
+        content + vvar_up,
         edges,
-        baseline=content - err,
+        baseline=content - vvar_do,
         fill=True,
         zorder=+10,
         hatch="///",
@@ -290,7 +318,7 @@ def final_bkg_plot(
         if not isSignal:
             continue
         label = plot_dict[sample_name]["name"]
-        h_sm = input_file[variable][f"histo_{sample_name}"].to_hist().copy()
+        h_sm = input_file[region][variable][f"histo_{sample_name}"].to_hist().copy()
         color = plot_dict[sample_name].get("color", "black")
         plot_ratio_single_err(
             h_sm,
@@ -313,7 +341,7 @@ def final_bkg_plot(
     ax[1].set_xlabel(formatted)
 
     fig.savefig(
-        f"plots/{scale}_{op}_{variable}.png",
+        f"plots/{scale}_{op}_{region}_{variable}.png",
         facecolor="white",
         pad_inches=0.1,
         bbox_inches="tight",
