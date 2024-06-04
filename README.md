@@ -45,8 +45,8 @@ To run an analysis write a configuration python file like `configs/osww/config.p
         * `reweight_card`: path to the reweight card to parse
         * `ops`: list of active operators (subset of the ones specified in the reweight_card)
 * `branches`: the subset of branches that will be read from all the root files 
-* `object_selections`: a function that takes the events (as awkward array) and creates all the collections and columns needed for your analysis
-* `selections`: a function that takes the events and returns a subset of them based on some cuts
+* `object_defintions`: a function that takes the events (as awkward array) and creates all the collections and columns needed for your analysis
+* `get_regions`: a function that returns a dictionary with all the regions and corresponding function to select a subset of events based on some cuts
 * `get_variables`: a function that returns a dictionary with all the variables. Each key (variable name) should have the following structure:
 ```python
 def get_variables():
@@ -68,6 +68,10 @@ def get_variables():
         }
     }
 ```
+* `get_variations`: a function that returns a dictionary with all the variations. Each variation has :
+    * `switches`: mapping of branches to be replaced 
+    * `func`: function that takes the events and creates a new column(s) to be used in the variation. See the configs for example.
+* `systematics`: a dictionary of the systematics of the analysis. They can take many variations as input and manipulate them
 
 * `scales`
 * `get_plot(op)`
