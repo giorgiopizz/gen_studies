@@ -9,3 +9,4 @@ madgraph**
 **.txt
 **.ruff_cache
 **.out
+src/gen_studies/version.py
