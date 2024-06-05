@@ -1,7 +1,10 @@
+import concurrent.futures  # noqa: F401
 import os
 import sys
 
 import uproot
+
+from gen_studies.fit.utils import make_datacard
 
 
 def main():
@@ -12,23 +15,33 @@ def main():
     exec("import config as analysis_cfg", globals(), globals())
 
     analysis_dict = analysis_cfg.__dict__  # type: ignore # noqa: F821
-    samples = analysis_dict["samples"]
+
+    get_regions = analysis_dict["get_regions"]
     get_variables = analysis_dict["get_variables"]
-    get_plot_dict = analysis_dict["get_plot"]
-    scales = analysis_dict["scales"]
-    lumi = analysis_dict["lumi"]
-    plot_ylim_ratio = analysis_dict.get("plot_ylim_ratio")
+    systematics = analysis_dict["systematics"]
+    structures = analysis_dict["structures"]
 
     variables = get_variables()
-
-    ops = []
-    for sample_name in samples:
-        if samples[sample_name]["eft"] != {}:
-            ops = samples[sample_name]["eft"]["ops"]
+    regions = get_regions()
 
     input_file = uproot.open("histos.root")
 
     os.makedirs("datacards", exist_ok=True)
+
+    # for variable in variables:
+    for variable in list(variables.keys())[:1]:
+        for region_name in regions:
+            for structure_name in structures:
+                # Do not overwrite
+                _variable = variable.replace(":", "_")
+                make_datacard(
+                    input_file,
+                    region_name,
+                    _variable,
+                    systematics,
+                    structure_name,
+                    structures,
+                )
 
 
 if __name__ == "__main__":

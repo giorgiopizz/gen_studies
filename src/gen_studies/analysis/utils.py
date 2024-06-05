@@ -97,8 +97,45 @@ def create_components(events, active_ops, rwgts):
             - new_weights[f"lin_{op2}"]
             - new_weights[f"quad_{op2}"]
         )
+        new_weights[f"sm_lin_quad_mixed_{_op1}_{_op2}"] = weights[:, rwgts[rwgt_key]]
     events["components"] = ak.zip(new_weights)
     return events
+
+
+def get_components(active_ops, rwgts):
+    components = ["sm"]
+    for op in active_ops:
+        # make sm_lin_quad
+        components.append(f"sm_lin_quad_{op}")
+        # make linear
+        components.append(f"lin_{op}")
+        # make quad
+        components.append(f"quad_{op}")
+    for op1, op2 in list(itertools.combinations(active_ops, 2)):
+        _op1, _op2 = op1, op2
+        rwgt_key = f"{op1}=1, {op2}=1"
+        if rwgt_key not in rwgts:
+            rwgt_key = f"{op2}=1, {op1}=1"
+            _op1, _op2 = op2, op1
+        components.append(f"mixed_{_op1}_{_op2}")
+        components.append(f"sm_lin_quad_mixed_{_op1}_{_op2}")
+    return components
+
+
+def flatten_samples(samples):
+    samples_flat = []
+    for sample_name in samples:
+        if samples[sample_name]["eft"] != {}:
+            _, rwgts = read_ops(samples[sample_name]["eft"]["reweight_card"])
+            components = get_components(
+                samples[sample_name]["eft"]["ops"],
+                rwgts,
+            )
+            for component in components:
+                samples_flat.append(f"{sample_name}_{component}")
+        else:
+            samples_flat.append(f"{sample_name}_sm")
+    return samples_flat
 
 
 def hist_move_content(h, ifrom, ito):
@@ -204,9 +241,7 @@ def hist_unroll(h):
     numpy_view = h.view()  # no under/overflow!
     nx = numpy_view.shape[0]
     ny = numpy_view.shape[1]
-    h_unroll = hist.Hist(
-        hist.axis.Regular(nx * ny, 0, nx * ny), hist.storage.Weight()
-    )
+    h_unroll = hist.Hist(hist.axis.Regular(nx * ny, 0, nx * ny), hist.storage.Weight())
 
     numpy_view_unroll = h_unroll.view()
     numpy_view_unroll.value = numpy_view.value.flatten()

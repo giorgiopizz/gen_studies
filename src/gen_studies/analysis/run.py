@@ -209,14 +209,17 @@ def main():
                     if component != "sm":
                         continue
                     for systematic in systematics:
-                        if systematics[systematic]["kind"] not in [
+                        if systematics[systematic].get("kind", "") not in [
                             "weight_envelope",
                             "weight_rms",
                             "weight_square",
                         ]:
                             continue
+                        sample_key = f"{sample_name}_{component}"
+                        if sample_key not in systematics[systematic]["samples"]:
+                            continue
                         histos_to_process = systematics[systematic]["samples"][
-                            sample_name
+                            sample_key
                         ]
                         good_variable = variable_name.replace(":", "_")
                         # final_name = f"{region_name}/{good_variable}/"

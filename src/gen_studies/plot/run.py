@@ -21,18 +21,13 @@ def main():
     get_variables = analysis_dict["get_variables"]
     systematics = analysis_dict["systematics"]
 
-    get_plot_dict = analysis_dict["get_plot"]
+    plots = analysis_dict["plots"]
     scales = analysis_dict["scales"]
     lumi = analysis_dict["lumi"]
-    plot_ylim_ratio = analysis_dict.get("plot_ylim_ratio")
+    plot_ylim_ratio = analysis_dict["plot_ylim_ratio"]
 
     variables = get_variables()
     regions = get_regions()
-
-    ops = []
-    for sample_name in samples:
-        if samples[sample_name]["eft"] != {}:
-            ops = samples[sample_name]["eft"]["ops"]
 
     input_file = uproot.open("histos.root")
 
@@ -43,7 +38,7 @@ def main():
         # for variable in variables:
         for variable in list(variables.keys())[:1]:
             for region_name in regions:
-                for op in ops:
+                for plot_name in plots:
                     if "formatted" in variables[variable]:
                         formatted = "$" + variables[variable]["formatted"] + "$"
                     else:
@@ -53,17 +48,16 @@ def main():
                     _variable = variable.replace(":", "_")
 
                     for scale in scales:
-                        plot_dict = get_plot_dict(op)
                         tasks.append(
                             pool.submit(
                                 final_bkg_plot,
                                 input_file,
                                 samples,
-                                plot_dict,
+                                plot_name,
+                                plots,
                                 region_name,
                                 _variable,
                                 systematics,
-                                op,
                                 scale,
                                 formatted,
                                 lumi,

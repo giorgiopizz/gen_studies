@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from typing import OrderedDict
 
 import awkward as ak
@@ -184,64 +185,64 @@ def get_variations():
         },
     }
 
-    # QCDScales
-    def wrapper(variation_idx, weight_idx):
-        def func(events):
-            events[f"weight_QCDScale_{variation_idx}"] = (
-                events.genWeight[:] * events.LHEScaleWeight[:, weight_idx]
-            )
-            return events
+    # # QCDScales
+    # def wrapper(variation_idx, weight_idx):
+    #     def func(events):
+    #         events[f"weight_QCDScale_{variation_idx}"] = (
+    #             events.genWeight[:] * events.LHEScaleWeight[:, weight_idx]
+    #         )
+    #         return events
 
-        return func
+    #     return func
 
-    variation_idx = 0
-    for weight_idx in [0, 1, 3, 4, 6, 7]:
-        variations[f"QCDScale_{variation_idx}"] = {
-            "switches": [
-                ("genWeight", f"weight_QCDScale_{variation_idx}"),
-            ],
-            "func": wrapper(variation_idx, weight_idx),
-        }
-        variation_idx += 1
+    # variation_idx = 0
+    # for weight_idx in [0, 1, 3, 4, 6, 7]:
+    #     variations[f"QCDScale_{variation_idx}"] = {
+    #         "switches": [
+    #             ("genWeight", f"weight_QCDScale_{variation_idx}"),
+    #         ],
+    #         "func": wrapper(variation_idx, weight_idx),
+    #     }
+    #     variation_idx += 1
 
-    # PDF
-    def wrapper(variation_idx, weight_idx):
-        def func(events):
-            events[f"weight_PDF_{variation_idx}"] = (
-                events.genWeight[:] * events.LHEPdfWeight[:, weight_idx]
-            )
-            return events
+    # # PDF
+    # def wrapper(variation_idx, weight_idx):
+    #     def func(events):
+    #         events[f"weight_PDF_{variation_idx}"] = (
+    #             events.genWeight[:] * events.LHEPdfWeight[:, weight_idx]
+    #         )
+    #         return events
 
-        return func
+    #     return func
 
-    variation_idx = 0
-    for weight_idx in range(1, 101):
-        variations[f"PDF_{variation_idx}"] = {
-            "switches": [
-                ("genWeight", f"weight_PDF_{variation_idx}"),
-            ],
-            "func": wrapper(variation_idx, weight_idx),
-        }
-        variation_idx += 1
+    # variation_idx = 0
+    # for weight_idx in range(1, 101):
+    #     variations[f"PDF_{variation_idx}"] = {
+    #         "switches": [
+    #             ("genWeight", f"weight_PDF_{variation_idx}"),
+    #         ],
+    #         "func": wrapper(variation_idx, weight_idx),
+    #     }
+    #     variation_idx += 1
 
     return variations
 
 
 systematics = {
-    "QCDScale": {
-        # "name": "PDF",
-        "kind": "weight_envelope",
-        # "type": "shape",
-        # "AsLnN": "0",
-        "samples": {sample: [f"QCDScale_{i}" for i in range(6)] for sample in samples},
-    },
-    "PDF": {
-        # "name": "PDF",
-        "kind": "weight_square",
-        # "type": "shape",
-        # "AsLnN": "0",
-        "samples": {sample: [f"PDF_{i}" for i in range(100)] for sample in samples},
-    },
+    # "QCDScale": {
+    #     # "name": "PDF",
+    #     "kind": "weight_envelope",
+    #     # "type": "shape",
+    #     # "AsLnN": "0",
+    #     "samples": {sample: [f"QCDScale_{i}" for i in range(6)] for sample in samples},
+    # },
+    # "PDF": {
+    #     # "name": "PDF",
+    #     "kind": "weight_square",
+    #     # "type": "shape",
+    #     # "AsLnN": "0",
+    #     "samples": {sample: [f"PDF_{i}" for i in range(100)] for sample in samples},
+    # },
 }
 
 
@@ -280,7 +281,6 @@ def get_plot(op):
     plot["OSWW_sm"] = {
         "color": next(colors),
         "name": "OSWW",
-        # 'isSignal': True
     }
 
     plot[f"OSWW_lin_{op}"] = {

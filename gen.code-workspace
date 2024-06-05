@@ -13,7 +13,7 @@
         "ruff.configuration": "pyproject.toml",
         "[python]": {
             "editor.codeActionsOnSave": {
-                "source.fixAll": "explicit",
+                // "source.fixAll": "explicit",
                 "source.organizeImports": "explicit"
             },
             "editor.formatOnSave": true,

@@ -14,22 +14,19 @@ Once micromamba is set up:
 
 `micromamba create -f env.yaml`
 
-will create the environment `(lhe)` used for this repo.
+will create the environment `(gen)` used for this repo.
 
 Activate it with:
 
-<!-- `micromamba activate lhe`. -->
 `source setup.sh`
 
 This source will be needed everytime the environment is changed or you logout.
 
-You can source from whatever directory e.g.:
-
-`cd analysis; source ../setup.sh` 
+You can source from whatever directory.
 
 ### Install gen_studies
 It's sufficient to run 
-`pip install -e .` in gen_studies
+`pip install -e .` in the parent folder: `gen_studies`
 
 
 ## Analysis configuration
@@ -72,14 +69,23 @@ def get_variables():
     * `switches`: mapping of branches to be replaced 
     * `func`: function that takes the events and creates a new column(s) to be used in the variation. See the configs for example.
 * `systematics`: a dictionary of the systematics of the analysis. They can take many variations as input and manipulate them
+* `scales`: the scale to use for the plots (`lin` and `log`)
+* `plot_ylim_ratio`: will set limits to the bottom pad, i.e. ratio, use `(None, None)` to let matplotlib figure out the limits
+* `plots`: a dictionary of `plot` where each plot configures which samples to use and other options
+* `structures` a dictionary of `structure` where each structure configures which samples to use and which are the signals or data
+* `structures_ops` a dictionary where for each structure above one defines the dictionary of operators with their ranges
 
-* `scales`
-* `get_plot(op)`
-
-
+# Scripts
 
 ## Analysis
-Run in the `configs/analysis_name/` folder the analysis with `run-analyis` 
+Run in the `configs/analysis_name/` folder the analysis with `analyis-run` 
 
 ## Plot
-Run in the `configs/analysis_name/` folder the plots with `run-plot` 
+Run in the `configs/analysis_name/` folder the plots with `plot-run` 
+
+## Fit
+Run in the `configs/analysis_name/` folder the plots with `fit-makecards` 
+Run in the `configs/analysis_name/` folder the plots with `fit-run` 
+Run in the `configs/analysis_name/` folder the plots with `fit-plot` 
+
+

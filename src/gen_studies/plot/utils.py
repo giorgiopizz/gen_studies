@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import matplotlib as mpl
 import numpy as np
 
@@ -136,11 +138,11 @@ def get_lighter_color(color):
 def final_bkg_plot(
     input_file,
     samples,
-    plot_dict,
+    plot_name,
+    plots,
     region,
     variable,
     systematics,
-    op,
     scale,
     formatted,
     lumi,
@@ -162,8 +164,8 @@ def final_bkg_plot(
 
     hlast = 0
     hlast_bkg = 0
-    vlast_syst_up = 0
-    vlast_syst_do = 0
+    vlast_syst = {}
+    plot_dict = deepcopy(plots[plot_name])
     for isample, sample_name in enumerate(plot_dict):
         # print(sample_name)
         isSignal = plot_dict[sample_name].get("isSignal", False)
@@ -186,27 +188,33 @@ def final_bkg_plot(
             # include systematics+stat
             for syst in list(systematics.keys()) + ["stat"]:
                 if syst == "stat":
-                    vvar_up = h_sm.variances()
-                    vvar_do = h_sm.variances()
+                    vvar_up = h_sm.values() + np.sqrt(h_sm.variances())
+                    vvar_do = h_sm.values() - np.sqrt(h_sm.variances())
                 else:
-                    _final_name = final_name + f"_{syst}Up"
-                    vvar_up = np.square(
-                        input_file[_final_name].values() - h_sm.values()
-                    )
-                    _final_name = final_name + f"_{syst}Down"
-                    vvar_do = np.square(
-                        input_file[_final_name].values() - h_sm.values()
-                    )
+                    if sample_name not in systematics[syst]["samples"]:
+                        vvar_up = h_sm.values().copy()
+                        vvar_do = h_sm.values().copy()
+                    else:
+                        syst_type = systematics[syst]["type"]
+                        if syst_type == "shape":
+                            _final_name = final_name + f"_{syst}Up"
+                            vvar_up = input_file[_final_name].values()
 
-                if isinstance(vlast_syst_up, int):
-                    vlast_syst_up = vvar_up.copy()
-                else:
-                    vlast_syst_up += vvar_up.copy()
+                            _final_name = final_name + f"_{syst}Down"
+                            vvar_do = input_file[_final_name].values()
+                        elif syst_type == "lnN":
+                            scaling = float(systematics[syst]["samples"][sample_name])
+                            vvar_up = scaling * h_sm.values()
+                            vvar_do = 1.0 / scaling * h_sm.values()
 
-                if isinstance(vlast_syst_do, int):
-                    vlast_syst_do = vvar_do.copy()
+                if syst not in vlast_syst:
+                    vlast_syst[syst] = {
+                        "up": vvar_up,
+                        "do": vvar_do,
+                    }
                 else:
-                    vlast_syst_do += vvar_do.copy()
+                    vlast_syst[syst]["up"] += vvar_up
+                    vlast_syst[syst]["do"] += vvar_do
 
         centers = hlast.axes[0].centers
         edges = hlast.axes[0].edges
@@ -251,8 +259,19 @@ def final_bkg_plot(
         )
     content = hlast_bkg.values()
     # err = np.sqrt(hlast_bkg.variances())
+    vvar_up = 0
+    vvar_do = 0
+    for syst in vlast_syst:
+        if isinstance(vvar_up, int):
+            vvar_up = np.square(vlast_syst[syst]["up"].copy() - content)
+            vvar_do = np.square(vlast_syst[syst]["do"].copy() - content)
+        else:
+            vvar_up += np.square(vlast_syst[syst]["up"].copy() - content)
+            vvar_do += np.square(vlast_syst[syst]["do"].copy() - content)
+
     vvar_up = np.sqrt(vvar_up)
     vvar_do = np.sqrt(vvar_do)
+
     ax[0].stairs(
         content + vvar_up,
         edges,
@@ -302,12 +321,11 @@ def final_bkg_plot(
     ax[1].plot(edges, np.zeros_like(edges), color="black")
 
     content = hlast_bkg.values()
-    err = np.sqrt(hlast_bkg.variances())
 
     ax[1].stairs(
-        (content + err) / content - 1,
+        (content + vvar_up) / content - 1,
         edges,
-        baseline=(content - err) / content - 1,
+        baseline=(content - vvar_do) / content - 1,
         fill=True,
         color="lightgrey",
     )
@@ -341,7 +359,7 @@ def final_bkg_plot(
     ax[1].set_xlabel(formatted)
 
     fig.savefig(
-        f"plots/{scale}_{op}_{region}_{variable}.png",
+        f"plots/{scale}_{plot_name}_{region}_{variable}.png",
         facecolor="white",
         pad_inches=0.1,
         bbox_inches="tight",

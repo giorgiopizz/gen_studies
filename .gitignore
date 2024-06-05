@@ -8,3 +8,4 @@ madgraph**
 **__pycache__**
 **.txt
 **.ruff_cache
+**.out
