@@ -2,32 +2,14 @@
 
 ## Getting started
 
-### Clone the repo
+Clone the repo:
 
-### Micromamba with python3.10
-Use micromamba, it's fast. If you don't have it yet:
-run:
+`git clone https://github.com/giorgiopizz/gen_studies`
 
-`"${SHELL}" <(curl -L micro.mamba.pm/install.sh)`
+Setup an environment with python3.10 (optional, see micromamba below).
 
-and configure it (the default options are ok) and activate micromamba (`source ~/.bashrc`).
+To install gen_studies it's sufficient to run:
 
-Once micromamba is set up:
-
-`micromamba create -f env.yaml`
-
-will create the environment `(gen)` used for this repo.
-
-Activate it with:
-
-`source setup.sh`
-
-This source will be needed everytime the environment is changed or you logout.
-
-You can source from whatever directory.
-
-### Install gen_studies
-It's sufficient to run 
 `pip install -e .` in the parent folder: `gen_studies`
 
 
@@ -38,7 +20,7 @@ To run an analysis write a configuration python file like `configs/HH_lhe/config
 ### General section
 * `lumi` 
 * `samples` dictionary where each key is a sample and has the structure:
-    * `xs` 
+    * `xs`: cross-section of the sample in $\textrm{pb}^{-1}$
     * `files_pattern`: pattern to be used with glob to get all the files
     * `limit_files`: the max number of files to process
     * `nevents_per_file`: the number of events per root file
@@ -114,3 +96,25 @@ Run in the `configs/analysis_name/` folder the plots with `gs-fit-run`
 Run in the `configs/analysis_name/` folder the plots with `gs-fit-plot` 
 
 
+
+## Python environment: micromamba with python3.10
+Use micromamba, it's fast. If you don't have it yet:
+run:
+
+`"${SHELL}" <(curl -L micro.mamba.pm/install.sh)`
+
+and configure it (the default options are ok) and activate micromamba (`source ~/.bashrc`).
+
+Once micromamba is set up:
+
+`micromamba create -n gen python=3.10`
+
+will create the environment `(gen)` used for this repo.
+
+Activate it with:
+
+`micromamba activate gen`
+
+This source will be needed everytime the environment is changed or you logout.
+
+You can source from whatever directory.
