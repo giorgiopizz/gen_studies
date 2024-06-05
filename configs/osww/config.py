@@ -1,9 +1,12 @@
 # ruff: noqa: E501
+import itertools
 from typing import OrderedDict
 
 import awkward as ak
 import hist
 import numpy as np
+from gen_studies.analysis.utils import flatten_samples, read_ops
+from gen_studies.plot.utils import cmap
 
 # General config
 lumi = 100.0  # fb^-1
@@ -26,6 +29,7 @@ samples["OSWW"] = dict(
     ),
 )
 
+flat_samples = flatten_samples(samples)
 
 particle_branches = ["pt", "eta", "phi", "mass", "pdgId", "status"]
 branches = [f"LHEPart_{k}" for k in particle_branches] + [
@@ -185,25 +189,25 @@ def get_variations():
         },
     }
 
-    # # QCDScales
-    # def wrapper(variation_idx, weight_idx):
-    #     def func(events):
-    #         events[f"weight_QCDScale_{variation_idx}"] = (
-    #             events.genWeight[:] * events.LHEScaleWeight[:, weight_idx]
-    #         )
-    #         return events
+    # QCDScales
+    def wrapper(variation_idx, weight_idx):
+        def func(events):
+            events[f"weight_QCDScale_{variation_idx}"] = (
+                events.genWeight[:] * events.LHEScaleWeight[:, weight_idx]
+            )
+            return events
 
-    #     return func
+        return func
 
-    # variation_idx = 0
-    # for weight_idx in [0, 1, 3, 4, 6, 7]:
-    #     variations[f"QCDScale_{variation_idx}"] = {
-    #         "switches": [
-    #             ("genWeight", f"weight_QCDScale_{variation_idx}"),
-    #         ],
-    #         "func": wrapper(variation_idx, weight_idx),
-    #     }
-    #     variation_idx += 1
+    variation_idx = 0
+    for weight_idx in [0, 1, 3, 4, 6, 7]:
+        variations[f"QCDScale_{variation_idx}"] = {
+            "switches": [
+                ("genWeight", f"weight_QCDScale_{variation_idx}"),
+            ],
+            "func": wrapper(variation_idx, weight_idx),
+        }
+        variation_idx += 1
 
     # # PDF
     # def wrapper(variation_idx, weight_idx):
@@ -229,12 +233,13 @@ def get_variations():
 
 
 systematics = {
-    # "QCDScale": {
-    #     # "name": "PDF",
-    #     "kind": "weight_envelope",
-    #     # "type": "shape",
-    #     # "AsLnN": "0",
-    #     "samples": {sample: [f"QCDScale_{i}" for i in range(6)] for sample in samples},
+    "QCDScale": {
+        "name": "QCDScale",
+        "kind": "weight_envelope",
+        "type": "shape",
+        # "AsLnN": "0",
+        "samples": {skey: [f"QCDScale_{i}" for i in range(6)] for skey in ["OSWW_sm"]},
+    },
     # },
     # "PDF": {
     #     # "name": "PDF",
@@ -243,6 +248,11 @@ systematics = {
     #     # "AsLnN": "0",
     #     "samples": {sample: [f"PDF_{i}" for i in range(100)] for sample in samples},
     # },
+    "lumi": {
+        "name": "lumi",
+        "type": "lnN",
+        "samples": dict((skey, "1.02") for skey in flat_samples),
+    },
 }
 
 
@@ -273,10 +283,12 @@ scales = ["lin", "log"][:1]
 plot_ylim_ratio = (-0.5, 0.5)
 
 
-def get_plot(op):
-    cmap = ["#5790fc", "#f89c20", "#e42536", "#964a8b", "#9c9ca1", "#7a21dd"]
+plots = {}
+for op in samples["OSWW"]["eft"]["ops"]:
+    plot_name = f"1d_{op}"
+    plots[plot_name] = OrderedDict()
+    plot = plots[plot_name]
     colors = iter(cmap)
-    plot = OrderedDict()
 
     plot["OSWW_sm"] = {
         "color": next(colors),
@@ -296,4 +308,79 @@ def get_plot(op):
         "isSignal": True,
         "superimposed": True,
     }
-    return plot
+
+# Fit config
+combine_path = "/gwpool/users/gpizzati/combine_clean/CMSSW_11_3_4/src"
+npoints_fit_1d = 1000
+npoints_fit_2d = 1000
+
+structures = {}
+structures_ops = {}
+for op in samples["OSWW"]["eft"]["ops"]:
+    structure_name = f"1d_{op}"
+    structures[structure_name] = {}
+    structures_ops[structure_name] = {op: [-10, 10]}
+
+    structure = structures[structure_name]
+
+    structure["OSWW_sm"] = {
+        "name": "sm",
+        "isSignal": False,
+        "isData": False,
+    }
+
+    structure[f"OSWW_sm_lin_quad_{op}"] = {
+        "name": f"sm_lin_quad_{op}",
+        "isSignal": True,
+        "isData": False,
+        "noStat": True,
+    }
+
+    structure[f"OSWW_quad_{op}"] = {
+        "name": f"quad_{op}",
+        "isSignal": True,
+        "isData": False,
+        "noStat": True,
+    }
+
+_, rwgts = read_ops(samples["OSWW"]["eft"]["reweight_card"])
+for ops in list(itertools.combinations(samples["OSWW"]["eft"]["ops"], 2)):
+    _op1, _op2 = ops
+    rwgt_key = f"{_op1}=1, {_op2}=1"
+    if rwgt_key not in rwgts:
+        _op1, _op2 = _op2, _op1
+    structure_name = f"2d_{_op1}_{_op2}"
+    structures[structure_name] = {}
+    structures_ops[structure_name] = {
+        _op1: [-6, 2],
+        _op2: [-6, 3],
+    }
+    structure = structures[structure_name]
+
+    structure["OSWW_sm"] = {
+        "name": "sm",
+        "isSignal": False,
+        "isData": False,
+    }
+
+    for op in ops:
+        structure[f"OSWW_sm_lin_quad_{op}"] = {
+            "name": f"sm_lin_quad_{op}",
+            "isSignal": True,
+            "isData": False,
+            "noStat": True,
+        }
+
+        structure[f"OSWW_quad_{op}"] = {
+            "name": f"quad_{op}",
+            "isSignal": True,
+            "isData": False,
+            "noStat": True,
+        }
+
+    structure[f"OSWW_sm_lin_quad_mixed_{_op1}_{_op2}"] = {
+        "name": f"sm_lin_quad_mixed_{_op1}_{_op2}",
+        "isSignal": True,
+        "isData": False,
+        "noStat": True,
+    }

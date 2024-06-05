@@ -149,7 +149,6 @@ def final_bkg_plot(
     plot_ylim_ratio=None,
 ):
     # Begin single plot
-    # plt.rcParams["figure.autolayout"] = True
     fig, ax = plt.subplots(
         2,
         1,
@@ -167,7 +166,6 @@ def final_bkg_plot(
     vlast_syst = {}
     plot_dict = deepcopy(plots[plot_name])
     for isample, sample_name in enumerate(plot_dict):
-        # print(sample_name)
         isSignal = plot_dict[sample_name].get("isSignal", False)
 
         color = plot_dict[sample_name].get("color", "black")
@@ -258,7 +256,8 @@ def final_bkg_plot(
             **kwargs,
         )
     content = hlast_bkg.values()
-    # err = np.sqrt(hlast_bkg.variances())
+
+    # Compute squared sum of different systematics
     vvar_up = 0
     vvar_do = 0
     for syst in vlast_syst:
@@ -285,31 +284,9 @@ def final_bkg_plot(
         linewidth=0.0,
     )
 
-    # h_lin = input_file[variable][f"histo_{signal}_lin_{op}"]
-    # h_quad = input_file[variable][f"histo_{signal}_quad_{op}"]
-
-    # plot_good(h_sm, ax[0], "SM", sm_color)
-    # plot_good(h_lin, ax[0], f"Lin {op}", lin_color)
-    # plot_good(h_quad, ax[0], f"Quad {op}", quad_color)
-
     edges = h_sm.axes[0].edges
     ax[0].plot(edges, np.zeros_like(edges), color="black")
 
-    # # Setup legend alignment
-    # plt.rcParams["font.monospace"] = ["Fira Mono"]
-    # legend = ax[0].legend(prop={"family": "monospace", "weight": "semibold"})
-
-    # max_len1 = 0
-    # max_len2 = 0
-    # for t in legend.get_texts():
-    #     text = t.get_text().split("[")
-    #     max_len1 = max(max_len1, len(text[0]))
-    #     max_len2 = max(max_len2, len(text[1]))
-    # for t in legend.get_texts():
-    #     text = t.get_text().split("[")
-    #     new_text = "{:<" + str(max_len1) + "}- [{:>" + str(max_len2) + "}"
-    #     new_text = new_text.format(text[0], text[1])
-    #     t.set_text(new_text)
     ax[0].legend()
 
     # Setup labels and scale
@@ -350,8 +327,6 @@ def final_bkg_plot(
     ax[1].legend()
 
     ax[1].set_xlim(edges[0], edges[-1])
-    # min_val_ratio = -0.1
-    # max_val_ratio = 0.5
     if plot_ylim_ratio:
         ax[1].set_ylim(*plot_ylim_ratio)
 

@@ -387,6 +387,11 @@ for op in samples["HHjj"]["eft"]["ops"]:
     }
 
 
+# Fit config
+combine_path = "/gwpool/users/gpizzati/combine_clean/CMSSW_11_3_4/src"
+npoints_fit_1d = 1000
+npoints_fit_2d = 1000
+
 structures = {}
 structures_ops = {}
 for op in samples["HHjj"]["eft"]["ops"]:

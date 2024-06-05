@@ -38,12 +38,13 @@ requires-python = ">=3.10"
 packages = ["src/gen_studies"]
 
 [project.scripts]
-analysis-run = "gen_studies.analysis.run:main"
-plot-run = "gen_studies.plot.run:main"
-plot-variations = "gen_studies.plot.plot_variations:main"
-fit-makecards = "gen_studies.fit.datacards:main"
-fit-run = "gen_studies.fit.run:main"
-fit-plot = "gen_studies.fit.plot:main"
+gs-check-config = "gen_studies.analysis.check_config:main"
+gs-analysis-run = "gen_studies.analysis.run:main"
+gs-plot-run = "gen_studies.plot.run:main"
+gs-plot-variations = "gen_studies.plot.plot_variations:main"
+gs-fit-makecards = "gen_studies.fit.datacards:main"
+gs-fit-run = "gen_studies.fit.run:main"
+gs-fit-plot = "gen_studies.fit.plot:main"
 
 [tool.ruff]
 src = ["src/gen_studies"]

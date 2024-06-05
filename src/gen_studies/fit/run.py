@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 import os
 import subprocess
 import sys
@@ -17,6 +16,9 @@ def main():
     get_variables = analysis_dict["get_variables"]
     structures = analysis_dict["structures"]
     structures_ops = analysis_dict["structures_ops"]
+    combine_path = analysis_dict["combine_path"]
+    npoints_fit_1d = analysis_dict["npoints_fit_1d"]
+    npoints_fit_2d = analysis_dict["npoints_fit_2d"]
 
     variables = get_variables()
     regions = get_regions()
@@ -28,13 +30,13 @@ def main():
                 ops_ranges = structures_ops[structure_name]
                 ops = list(ops_ranges.keys())
                 if len(ops) > 1:
-                    npoints = 10000
+                    npoints = npoints_fit_1d
                 else:
-                    npoints = 1000
+                    npoints = npoints_fit_2d
 
                 path = f"datacards/{structure_name}/{region_name}/{_variable}"
                 print("Running in", path)
-                command = "cd /gwpool/users/gpizzati/combine_clean/CMSSW_11_3_4/src/; cmsenv; cd -;"
+                command = f"cd {combine_path}; cmsenv; cd -;"
                 command += f" cd {path}; "
                 command += (
                     "text2workspace.py datacard.txt "
