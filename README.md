@@ -75,17 +75,23 @@ def get_variables():
 * `structures` a dictionary of `structure` where each structure configures which samples to use and which are the signals or data
 * `structures_ops` a dictionary where for each structure above one defines the dictionary of operators with their ranges
 
-# Scripts
+## Scripts
 
-## Analysis
+### Analysis
 Run in the `configs/analysis_name/` folder the analysis with `analyis-run` 
 
-## Plot
+### Plot
 Run in the `configs/analysis_name/` folder the plots with `plot-run` 
+ 
+Run in the `configs/analysis_name/` folder the variation plots with `plot-variations` 
 
-## Fit
-Run in the `configs/analysis_name/` folder the plots with `fit-makecards` 
+### Fit
+Run in the `configs/analysis_name/` folder the plots with `fit-makecards`
+
+
 Run in the `configs/analysis_name/` folder the plots with `fit-run` 
+
+
 Run in the `configs/analysis_name/` folder the plots with `fit-plot` 
 
 
