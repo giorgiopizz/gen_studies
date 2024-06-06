@@ -3,7 +3,6 @@ import gc
 import awkward as ak
 import hist
 import uproot
-
 from gen_studies.analysis.utils import create_components
 
 
@@ -165,8 +164,10 @@ def process(
             masked_events = events[events[region_name]]
             for variable_name in variables:
                 for component_name in ak.fields(events.components):
-                    if component_name != "sm" and variation_name != "nominal":
+                    sample_key = f"{sample_name}_{component_name}"
+                    if sample_key not in variations[variation_name]["samples"]:
                         continue
+
                     weight = (
                         masked_events["genWeight"]
                         * masked_events["components"][component_name]

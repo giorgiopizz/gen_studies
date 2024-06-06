@@ -163,7 +163,7 @@ def final_bkg_plot(
 
     hlast = 0
     hlast_bkg = 0
-    vlast_syst = {}
+    v_syst_bkg = {}
     plot_dict = deepcopy(plots[plot_name])
     for isample, sample_name in enumerate(plot_dict):
         isSignal = plot_dict[sample_name].get("isSignal", False)
@@ -205,14 +205,14 @@ def final_bkg_plot(
                             vvar_up = scaling * h_sm.values()
                             vvar_do = 1.0 / scaling * h_sm.values()
 
-                if syst not in vlast_syst:
-                    vlast_syst[syst] = {
+                if syst not in v_syst_bkg:
+                    v_syst_bkg[syst] = {
                         "up": vvar_up,
                         "do": vvar_do,
                     }
                 else:
-                    vlast_syst[syst]["up"] += vvar_up
-                    vlast_syst[syst]["do"] += vvar_do
+                    v_syst_bkg[syst]["up"] += vvar_up
+                    v_syst_bkg[syst]["do"] += vvar_do
 
         centers = hlast.axes[0].centers
         edges = hlast.axes[0].edges
@@ -260,13 +260,13 @@ def final_bkg_plot(
     # Compute squared sum of different systematics
     vvar_up = 0
     vvar_do = 0
-    for syst in vlast_syst:
+    for syst in v_syst_bkg:
         if isinstance(vvar_up, int):
-            vvar_up = np.square(vlast_syst[syst]["up"].copy() - content)
-            vvar_do = np.square(vlast_syst[syst]["do"].copy() - content)
+            vvar_up = np.square(v_syst_bkg[syst]["up"].copy() - content)
+            vvar_do = np.square(v_syst_bkg[syst]["do"].copy() - content)
         else:
-            vvar_up += np.square(vlast_syst[syst]["up"].copy() - content)
-            vvar_do += np.square(vlast_syst[syst]["do"].copy() - content)
+            vvar_up += np.square(v_syst_bkg[syst]["up"].copy() - content)
+            vvar_do += np.square(v_syst_bkg[syst]["do"].copy() - content)
 
     vvar_up = np.sqrt(vvar_up)
     vvar_do = np.sqrt(vvar_do)

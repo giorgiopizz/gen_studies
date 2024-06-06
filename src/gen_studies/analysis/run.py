@@ -8,7 +8,6 @@ import hist
 import numpy as np
 import uproot
 import vector
-
 from gen_studies.analysis.process import process
 from gen_studies.analysis.utils import (
     add_dict,
@@ -157,10 +156,10 @@ def main():
         for variable_name in variables:
             for region_name in regions:
                 for component in components[sample_name]:
+                    sample_key = f"{sample_name}_{component}"
                     for variation_name in variations:
-                        if component != "sm" and variation_name != "nominal":
+                        if sample_key not in variations[variation_name]["samples"]:
                             continue
-                        # print(component)
                         h_slice = (
                             hist.loc(variation_name),
                             hist.loc(region_name),
@@ -206,8 +205,8 @@ def main():
             for region_name in regions:
                 _out = out[f"{region_name}/{good_variable}/"]
                 for component in components[sample_name]:
-                    if component != "sm":
-                        continue
+                    # if component != "sm":
+                    #     continue
                     for systematic in systematics:
                         if systematics[systematic].get("kind", "") not in [
                             "weight_envelope",
