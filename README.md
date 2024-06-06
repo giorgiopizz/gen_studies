@@ -58,6 +58,7 @@ where you define different configuration variables.
 * `get_variations`: a function that returns a dictionary with all the variations. Each variation has :
     * `switches`: mapping of branches to be replaced 
     * `func`: function that takes the events and creates a new column(s) to be used in the variation. See the configs for example.
+    * `samples`: list of flat samples for which this variation should be computed and saved
 * `systematics`: a dictionary of the systematics of the analysis. They can take many variations as input and manipulate them
 
 ### Plot section

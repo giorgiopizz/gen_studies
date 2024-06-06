@@ -153,11 +153,15 @@ def get_regions():
     }
 
 
+samples_for_nuis = [sample for sample in flat_samples if sample.endswith("sm")]
+
+
 def get_variations():
     variations = {
         "nominal": {
             "switches": [],
             "func": lambda events: events,
+            "samples": flat_samples,
         },
     }
 
@@ -178,28 +182,30 @@ def get_variations():
                 ("genWeight", f"weight_QCDScale_{variation_idx}"),
             ],
             "func": wrapper(variation_idx, weight_idx),
+            "samples": samples_for_nuis,
         }
         variation_idx += 1
 
-    # # PDF
-    # def wrapper(variation_idx, weight_idx):
-    #     def func(events):
-    #         events[f"weight_PDF_{variation_idx}"] = (
-    #             events.genWeight[:] * events.LHEPdfWeight[:, weight_idx]
-    #         )
-    #         return events
+    # PDF
+    def wrapper(variation_idx, weight_idx):
+        def func(events):
+            events[f"weight_PDF_{variation_idx}"] = (
+                events.genWeight[:] * events.LHEPdfWeight[:, weight_idx]
+            )
+            return events
 
-    #     return func
+        return func
 
-    # variation_idx = 0
-    # for weight_idx in range(1, 101):
-    #     variations[f"PDF_{variation_idx}"] = {
-    #         "switches": [
-    #             ("genWeight", f"weight_PDF_{variation_idx}"),
-    #         ],
-    #         "func": wrapper(variation_idx, weight_idx),
-    #     }
-    #     variation_idx += 1
+    variation_idx = 0
+    for weight_idx in range(1, 101):
+        variations[f"PDF_{variation_idx}"] = {
+            "switches": [
+                ("genWeight", f"weight_PDF_{variation_idx}"),
+            ],
+            "func": wrapper(variation_idx, weight_idx),
+            "samples": samples_for_nuis,
+        }
+        variation_idx += 1
 
     return variations
 
@@ -207,20 +213,20 @@ def get_variations():
 systematics = {
     "QCDScale": {
         "name": "QCDScale",
-        "kind": "weight_envelope",
         "type": "shape",
-        # "AsLnN": "0",
+        "kind": "weight_envelope",
         "samples": {
-            skey: [f"QCDScale_{i}" for i in range(6)] for skey in ["Sample_sm"]
+            skey: [f"QCDScale_{i}" for i in range(6)] for skey in samples_for_nuis
         },
     },
-    # "PDF": {
-    #     # "name": "PDF",
-    #     "kind": "weight_square",
-    #     # "type": "shape",
-    #     # "AsLnN": "0",
-    #     "samples": {sample: [f"PDF_{i}" for i in range(100)] for sample in samples},
-    # },
+    "PDF": {
+        "name": "PDF",
+        "type": "shape",
+        "kind": "weight_square",
+        "samples": {
+            skey: [f"PDF_{i}" for i in range(100)] for skey in samples_for_nuis
+        },
+    },
     "lumi": {
         "name": "lumi",
         "type": "lnN",
