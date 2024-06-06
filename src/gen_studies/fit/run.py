@@ -23,7 +23,7 @@ def main():
     variables = get_variables()
     regions = get_regions()
 
-    for variable in list(variables.keys())[:1]:
+    for variable in list(variables.keys())[:]:
         for region_name in regions:
             for structure_name in structures:
                 _variable = variable.replace(":", "_")

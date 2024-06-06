@@ -3,7 +3,6 @@ import os
 import sys
 
 import uproot
-
 from gen_studies.plot.utils import final_bkg_plot
 
 
@@ -35,8 +34,7 @@ def main():
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=6) as pool:
         tasks = []
-        # for variable in variables:
-        for variable in list(variables.keys())[:1]:
+        for variable in list(variables.keys())[:]:
             for region_name in regions:
                 for plot_name in plots:
                     if "formatted" in variables[variable]:

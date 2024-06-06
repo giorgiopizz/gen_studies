@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
 import uproot
-
 from gen_studies.plot.utils import cmap
 
 
@@ -96,7 +95,6 @@ def make_datacard(
                         output_file[f"histo_{name}_{systematic}{tag}"] = _h
             else:
                 syst = "-"
-            print(sample_name, systematic, syst)
             if systematic not in systs:
                 systs[systematic] = [systematics[systematic]["type"], syst]
             else:
@@ -122,7 +120,12 @@ def make_datacard(
         file.write(datacard)
 
 
-def plot1d(file, ops, lumi):
+def plot1d(
+    file,
+    ops,
+    lumi,
+    output_path,
+):
     op = ops[0]
     x = file["limit"][f"k_{op}"].array().to_numpy()
     y = file["limit"]["deltaNLL"].array().to_numpy()
@@ -184,7 +187,7 @@ def plot1d(file, ops, lumi):
     ax.grid(which="both")
     ax.legend()
     fig.savefig(
-        f"scans/scan_1d_{op}.png",
+        output_path,
         facecolor="white",
         pad_inches=0.1,
         bbox_inches="tight",
@@ -196,6 +199,7 @@ def plot2d(
     file,
     ops,
     lumi,
+    output_path,
 ):
     debug = True
     c1 = file["limit"][f"k_{ops[0]}"].array().to_numpy()
@@ -312,7 +316,7 @@ def plot2d(
     ax.set_ylabel(ops[1], loc="top")
     ax.legend()
     fig.savefig(
-        f"scans/scan_2d_{ops[0]}_{ops[1]}.png",
+        output_path,
         facecolor="white",
         pad_inches=0.1,
         bbox_inches="tight",

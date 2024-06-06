@@ -14,8 +14,8 @@ To install gen_studies it's sufficient to run:
 
 
 ## Analysis configuration
-To run an analysis write a configuration python file like `configs/HH_lhe/config.py`
-(always under the `configs` folder) where you define different configuration variables.
+To run an analysis write a configuration python file like `src/gen_studies/configs/config.py`
+where you define different configuration variables.
 
 ### General section
 * `lumi` 
@@ -75,8 +75,10 @@ To run an analysis write a configuration python file like `configs/HH_lhe/config
 
 ## Scripts
 
-### Check config
-Run in the `configs/analysis_name/` folder to check the config `gs-check-config` 
+### Config
+Run in the `configs/` folder to create the folder and `config.py`: `gs-config-create analysis_name` 
+
+Run in the `configs/analysis_name/` folder to check the config `gs-config-check` 
 
 ### Analysis
 Run in the `configs/analysis_name/` folder the analysis with `gs-analyis-run` 
@@ -87,13 +89,13 @@ Run in the `configs/analysis_name/` folder the plots with `gs-plot-run`
 Run in the `configs/analysis_name/` folder the variation plots with `gs-plot-variations` 
 
 ### Fit
-Run in the `configs/analysis_name/` folder the plots with `gs-fit-makecards`
+Run in the `configs/analysis_name/` folder to create datacards with `gs-fit-makecards`
 
 
-Run in the `configs/analysis_name/` folder the plots with `gs-fit-run` 
+Run in the `configs/analysis_name/` folder to run the fit with `gs-fit-run` 
 
 
-Run in the `configs/analysis_name/` folder the plots with `gs-fit-plot` 
+Run in the `configs/analysis_name/` folder to plot the scans with `gs-fit-plot` 
 
 
 

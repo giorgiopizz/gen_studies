@@ -3,7 +3,6 @@ import sys
 
 import matplotlib as mpl
 import uproot
-
 from gen_studies.fit.utils import plot1d, plot2d
 
 mpl.use("Agg")
@@ -33,17 +32,20 @@ def main():
     variables = get_variables()
     regions = get_regions()
 
-    for variable in list(variables.keys())[:1]:
+    for variable in list(variables.keys())[:]:
         for region_name in regions:
             for structure_name in structures:
                 _variable = variable.replace(":", "_")
                 ops_ranges = structures_ops[structure_name]
                 ops = list(ops_ranges.keys())
                 path = f"datacards/{structure_name}/{region_name}/{_variable}"
+                output_path = f"scans/{structure_name}/{region_name}/"
+                os.makedirs(output_path, exist_ok=True)
+                output_path += f"{_variable}.png"
                 filename = "higgsCombineTest.MultiDimFit.mH125.root"
                 file = uproot.open(f"{path}/{filename}")
                 if len(ops) == 1:
-                    plot1d(file, ops, lumi)
+                    plot1d(file, ops, lumi, output_path)
                 else:
-                    plot2d(file, ops, lumi)
+                    plot2d(file, ops, lumi, output_path)
                 file.close()

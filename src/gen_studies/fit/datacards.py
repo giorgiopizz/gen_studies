@@ -3,7 +3,6 @@ import os
 import sys
 
 import uproot
-
 from gen_studies.fit.utils import make_datacard
 
 
@@ -29,7 +28,7 @@ def main():
     os.makedirs("datacards", exist_ok=True)
 
     # for variable in variables:
-    for variable in list(variables.keys())[:1]:
+    for variable in list(variables.keys())[:]:
         for region_name in regions:
             for structure_name in structures:
                 # Do not overwrite
