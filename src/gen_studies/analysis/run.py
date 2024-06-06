@@ -79,7 +79,6 @@ def main():
             branches,
             object_definitions,
             get_variables,
-            # selections,
             get_regions,
             get_variations,
         )
@@ -137,7 +136,7 @@ def main():
     components = {}
 
     out = uproot.recreate("histos.root")
-    print("Postprocessing and saving histos")
+    print("Post processing and saving histos")
     for sample_name in samples:
         print(sample_name)
         xs = samples[sample_name]["xs"]
@@ -205,8 +204,6 @@ def main():
             for region_name in regions:
                 _out = out[f"{region_name}/{good_variable}/"]
                 for component in components[sample_name]:
-                    # if component != "sm":
-                    #     continue
                     for systematic in systematics:
                         if systematics[systematic].get("kind", "") not in [
                             "weight_envelope",
@@ -221,7 +218,6 @@ def main():
                             sample_key
                         ]
                         good_variable = variable_name.replace(":", "_")
-                        # final_name = f"{region_name}/{good_variable}/"
                         final_name = ""
                         final_name += f"histo_{sample_name}_{component}"
 
