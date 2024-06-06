@@ -8,8 +8,9 @@ from gen_studies.analysis.utils import flatten_samples
 
 mpl.use("Agg")
 import matplotlib.pyplot as plt
-import mplhep as hep
-from gen_studies.plot.utils import cmap
+
+# import mplhep as hep
+from gen_studies.plot.utils import cmap, set_plot_header, set_plot_style
 
 
 def plot_simple(h, ax, label, color, **kwargs):
@@ -52,14 +53,12 @@ def main():
     systematics = analysis_dict["systematics"]
 
     lumi = analysis_dict["lumi"]
+    plot_label = analysis_dict["plot_label"]
 
     variables = get_variables()
     regions = get_regions()
 
     os.makedirs("plots_variations", exist_ok=True)
-
-    d = hep.style.CMS
-    plt.style.use([d, hep.style.firamath])
 
     file = uproot.open("histos.root")
 
@@ -115,6 +114,7 @@ def main():
                         "color": next(colors),
                     }
 
+                set_plot_style()
                 fig, ax = plt.subplots(
                     2,
                     1,
@@ -124,9 +124,7 @@ def main():
                     dpi=100,
                 )
                 fig.tight_layout(pad=-0.5)
-                hep.cms.label(
-                    "Work in progress", data=False, ax=ax[0], exp="", lumi=str(lumi)
-                )
+                set_plot_header(plot_label, ax[0], lumi)
 
                 plot_simple(
                     h_nominal, ax[0], "Nominal", "black", **{"stairs": {"zorder": +10}}
@@ -155,7 +153,6 @@ def main():
                     title=f"{region} {sample_name}",
                     fancybox=True,
                 )
-
 
                 edges = h_nominal.axes[0].edges
                 ax[1].plot(edges, np.ones_like(edges), color="black")

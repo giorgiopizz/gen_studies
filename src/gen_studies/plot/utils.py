@@ -7,14 +7,20 @@ mpl.use("Agg")
 import matplotlib.pyplot as plt
 import mplhep as hep
 
-d = hep.style.CMS
-plt.style.use([d, hep.style.firamath])
-
 cmap = ["#5790fc", "#f89c20", "#e42536", "#964a8b", "#9c9ca1", "#7a21dd"]
 sm_color = cmap[0]
 lin_color = cmap[1]
 quad_color = cmap[2]
 darker_factor = 4 / 5
+
+
+def set_plot_style():
+    d = hep.style.CMS
+    plt.style.use([d, hep.style.firamath])
+
+
+def set_plot_header(plot_label, ax, lumi):
+    hep.cms.label(plot_label, data=True, ax=ax, exp="", lumi=str(lumi))
 
 
 def plot_good(h, ax, label, color, **kwargs):
@@ -71,21 +77,31 @@ def plot_ratio(h1, h2, ax, label, color, **kwargs):
     )
 
 
-def plot_ratio_single_err(h1, h2, ax, label, color, **kwargs):
+def plot_ratio_single_err(
+    h1,
+    err1_do,
+    err1_up,
+    h2,
+    ax,
+    label,
+    color,
+    **kwargs,
+):
     centers = h1.axes[0].centers
     edges = h1.axes[0].edges
     cont1 = h1.values()
     cont2 = h2.values()
     ratio = cont1 / cont2
-    err1 = np.sqrt(h1.variances())
+    # err1 = np.sqrt(h1.variances())
 
-    err = err1 / cont2
+    err_up = err1_up / cont2
+    err_do = err1_do / cont2
 
     if kwargs.get("plot_errors", True):
         ax.errorbar(
             centers,
             ratio,
-            yerr=err,
+            yerr=(err_do, err_up),
             fmt="o",
             label=label,
             color=color,
@@ -146,9 +162,11 @@ def final_bkg_plot(
     scale,
     formatted,
     lumi,
+    plot_label,
     plot_ylim_ratio=None,
 ):
     # Begin single plot
+    set_plot_style()
     fig, ax = plt.subplots(
         2,
         1,
@@ -159,11 +177,12 @@ def final_bkg_plot(
     )
     fig.tight_layout(pad=-0.5)
 
-    hep.cms.label("Work in progress", data=False, ax=ax[0], exp="", lumi=str(lumi))
+    set_plot_header(plot_label, ax[0], lumi)
 
     hlast = 0
     hlast_bkg = 0
     v_syst_bkg = {}
+    v_syst_sig = {}
     plot_dict = deepcopy(plots[plot_name])
     for isample, sample_name in enumerate(plot_dict):
         isSignal = plot_dict[sample_name].get("isSignal", False)
@@ -183,36 +202,53 @@ def final_bkg_plot(
             else:
                 hlast_bkg += h_sm.copy()
 
-            # include systematics+stat
-            for syst in list(systematics.keys()) + ["stat"]:
-                if syst == "stat":
-                    vvar_up = h_sm.values() + np.sqrt(h_sm.variances())
-                    vvar_do = h_sm.values() - np.sqrt(h_sm.variances())
+        # include systematics+stat
+        for syst in list(systematics.keys()) + ["stat"]:
+            if syst == "stat":
+                vvar_up = h_sm.values() + np.sqrt(h_sm.variances())
+                vvar_do = h_sm.values() - np.sqrt(h_sm.variances())
+            else:
+                if sample_name not in systematics[syst]["samples"]:
+                    vvar_up = h_sm.values().copy()
+                    vvar_do = h_sm.values().copy()
                 else:
-                    if sample_name not in systematics[syst]["samples"]:
-                        vvar_up = h_sm.values().copy()
-                        vvar_do = h_sm.values().copy()
-                    else:
-                        syst_type = systematics[syst]["type"]
-                        if syst_type == "shape":
-                            _final_name = final_name + f"_{syst}Up"
-                            vvar_up = input_file[_final_name].values()
+                    syst_type = systematics[syst]["type"]
+                    if syst_type == "shape":
+                        _final_name = final_name + f"_{syst}Up"
+                        vvar_up = input_file[_final_name].values()
 
-                            _final_name = final_name + f"_{syst}Down"
-                            vvar_do = input_file[_final_name].values()
-                        elif syst_type == "lnN":
-                            scaling = float(systematics[syst]["samples"][sample_name])
-                            vvar_up = scaling * h_sm.values()
-                            vvar_do = 1.0 / scaling * h_sm.values()
+                        _final_name = final_name + f"_{syst}Down"
+                        vvar_do = input_file[_final_name].values()
+                    elif syst_type == "lnN":
+                        scaling = float(systematics[syst]["samples"][sample_name])
+                        vvar_up = scaling * h_sm.values()
+                        vvar_do = 1.0 / scaling * h_sm.values()
 
+            if not isSignal:
                 if syst not in v_syst_bkg:
                     v_syst_bkg[syst] = {
-                        "up": vvar_up,
-                        "do": vvar_do,
+                        "up": vvar_up.copy(),
+                        "do": vvar_do.copy(),
                     }
                 else:
                     v_syst_bkg[syst]["up"] += vvar_up
                     v_syst_bkg[syst]["do"] += vvar_do
+            else:
+                vvar_up = np.square(vvar_up - h_sm.values())
+                vvar_do = np.square(vvar_do - h_sm.values())
+                if sample_name not in v_syst_sig:
+                    v_syst_sig[sample_name] = {
+                        "up": vvar_up.copy(),
+                        "do": vvar_do.copy(),
+                    }
+                else:
+                    v_syst_sig[sample_name]["up"] += vvar_up
+                    v_syst_sig[sample_name]["do"] += vvar_do
+        print(v_syst_sig)
+
+        if isSignal:
+            v_syst_sig[sample_name]["up"] = np.sqrt(v_syst_sig[sample_name]["up"])
+            v_syst_sig[sample_name]["do"] = np.sqrt(v_syst_sig[sample_name]["do"])
 
         centers = hlast.axes[0].centers
         edges = hlast.axes[0].edges
@@ -223,7 +259,9 @@ def final_bkg_plot(
             color = get_lighter_color(color)
         if plot_dict[sample_name].get("superimposed", False):
             _color = get_darker_color(color)
-            # _color = color
+            if not isSignal:
+                raise Exception("Can only plot superimposed for signals!")
+
             ax[0].stairs(
                 h_sm.values(),
                 edges,
@@ -236,7 +274,10 @@ def final_bkg_plot(
             ax[0].errorbar(
                 centers,
                 h_sm.values(),
-                yerr=np.sqrt(h_sm.variances()),
+                yerr=(
+                    v_syst_sig[sample_name]["do"],
+                    v_syst_sig[sample_name]["up"],
+                ),
                 fmt="o",
                 label=label + " imposed",
                 color=_color,
@@ -246,15 +287,16 @@ def final_bkg_plot(
         kwargs = dict(fill=True, zorder=-isample)
         if isSignal:
             kwargs = dict(fill=False, zorder=+isample)
-        ax[0].stairs(
-            content,
-            edges,
-            color=color,
-            label=label + f" [{integral}]",
-            edgecolor=get_darker_color(color),
-            linewidth=2,
-            **kwargs,
-        )
+        if plot_dict[sample_name].get("stacked", True):
+            ax[0].stairs(
+                content,
+                edges,
+                color=color,
+                label=label + f" [{integral}]",
+                edgecolor=get_darker_color(color),
+                linewidth=2,
+                **kwargs,
+            )
     content = hlast_bkg.values()
 
     # Compute squared sum of different systematics
@@ -317,6 +359,8 @@ def final_bkg_plot(
         color = plot_dict[sample_name].get("color", "black")
         plot_ratio_single_err(
             h_sm,
+            v_syst_sig[sample_name]["do"],
+            v_syst_sig[sample_name]["up"],
             hlast_bkg,
             ax[1],
             label,

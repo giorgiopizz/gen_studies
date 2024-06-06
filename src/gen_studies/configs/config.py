@@ -8,7 +8,9 @@ from gen_studies.analysis.utils import flatten_samples, read_ops
 from gen_studies.plot.utils import cmap
 
 # General config
-lumi = 300.0  # fb^-1
+# General config
+lumi = 300.0  # fb^-1, Run 3 expected int lumi
+# lumi = 137.8  # fb^-1, Run 2 int lumi
 
 runner = dict(
     local=True,
@@ -141,7 +143,7 @@ def get_regions():
         return (
             ((events.Jet[:, 0].pt > 30.0) & (events.Jet[:, 1].pt > 30.0))
             & (abs(events.detajj) >= 2.5)
-            & (events.mjj >= 150)
+            & (events.mjj >= 150)  # can also use defined variables!
             & (events.ptj1 >= 30)
             & (events.ptj2 >= 30)
             & (abs(events.Jet[:, 0].eta) < 5)
@@ -153,6 +155,7 @@ def get_regions():
     }
 
 
+# samples_for_nuis = flat_samples
 samples_for_nuis = [sample for sample in flat_samples if sample.endswith("sm")]
 
 
@@ -236,6 +239,7 @@ systematics = {
 
 
 # Plot config
+plot_label = "Sample"
 scales = ["lin", "log"][:1]
 plot_ylim_ratio = (None, None)
 
@@ -257,6 +261,7 @@ for op in samples["Sample"]["eft"]["ops"]:
         "name": f"Lin {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
     plot[f"Sample_quad_{op}"] = {
@@ -264,6 +269,7 @@ for op in samples["Sample"]["eft"]["ops"]:
         "name": f"Quad {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
 

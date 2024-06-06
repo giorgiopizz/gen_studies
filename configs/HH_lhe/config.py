@@ -8,7 +8,8 @@ from gen_studies.analysis.utils import flatten_samples, read_ops
 from gen_studies.plot.utils import cmap
 
 # General config
-lumi = 300.0  # fb^-1
+lumi = 300.0  # fb^-1, Run 3 expected int lumi
+# lumi = 137.8  # fb^-1, Run 2 int lumi
 
 runner = dict(
     local=True,
@@ -17,10 +18,11 @@ runner = dict(
 
 samples = {}
 
+
 samples["HHjj"] = dict(
-    xs=1.090e-02,  # need to change
+    xs=7.942574e-04,
     files_pattern="/gwteras/cms/store/user/gpizzati/PrivateMC/triennali/HHjj_smhloop0_dim6_12ops_CPV_mixed_new/HHJJ_SMHLOOP0_DIM6_12OPS_CPV_MIXED_NEW_dim6_cpodd/RunIISummer20UL18NanoAODv9_106X_upgrade2018_realistic_v11_nanoGEN_NANOAODSIM/240604_153402/0000/*root",
-    limit_files=50,
+    limit_files=200,
     nevents_per_file=5000,
     nevents_per_job=100000,  # need to change ?
     eft=dict(
@@ -125,7 +127,7 @@ def get_variables():
     return {
         "mjj": {
             "func": lambda events: (events.Jet[:, 0] + events.Jet[:, 1]).mass,
-            "axis": hist.axis.Regular(50, 250, 3500, name="mjj"),
+            "axis": hist.axis.Regular(50, 600, 3500, name="mjj"),
             "formatted": r"m_{jj} \; [GeV]",
         },
         # "mhh": {
@@ -147,11 +149,11 @@ def get_variables():
         #     "axis2": hist.axis.Regular(6, 30, 150, name="pth1"),
         #     "formatted": "m_{hh}:p^T_{h1}",
         # },
-        "detajj": {
-            "func": lambda events: abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])),
-            "axis": hist.axis.Regular(25, 1, 8, name="detajj"),
-            "formatted": r"\Delta\eta_{jj}",
-        },
+        # "detajj": {
+        #     "func": lambda events: abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])),
+        #     "axis": hist.axis.Regular(25, 1, 8, name="detajj"),
+        #     "formatted": r"\Delta\eta_{jj}",
+        # },
         # "dphijj": {
         #     "func": lambda events: abs(events.Jet[:, 0].deltaphi(events.Jet[:, 1])),
         #     "axis": hist.axis.Regular(50, 0, np.pi, name="dphijj"),
@@ -167,16 +169,16 @@ def get_variables():
         #     "axis": hist.axis.Regular(50, 0, np.pi, name="dphihh"),
         #     "formatted": r"\Delta\phi_{hh}",
         # },
-        "ptj1": {
-            "func": lambda events: events.Jet[:, 0].pt,
-            "axis": hist.axis.Regular(30, 30, 150, name="ptj1"),
-            "formatted": r"p^T_{j1} \; [GeV]",
-        },
-        "ptj2": {
-            "func": lambda events: events.Jet[:, 1].pt,
-            "axis": hist.axis.Regular(30, 30, 150, name="ptj2"),
-            "formatted": r"p^T_{j2} \; [GeV]",
-        },
+        # "ptj1": {
+        #     "func": lambda events: events.Jet[:, 0].pt,
+        #     "axis": hist.axis.Regular(30, 30, 150, name="ptj1"),
+        #     "formatted": r"p^T_{j1} \; [GeV]",
+        # },
+        # "ptj2": {
+        #     "func": lambda events: events.Jet[:, 1].pt,
+        #     "axis": hist.axis.Regular(30, 30, 150, name="ptj2"),
+        #     "formatted": r"p^T_{j2} \; [GeV]",
+        # },
         # # "ptl1": {
         # #    "func": lambda events: events.Lepton[:, 0].pt,
         # #    "axis": hist.axis.Regular(30, 25, 150, name="ptl1"),
@@ -261,13 +263,11 @@ def get_variables():
 def get_regions():
     def sr(events):
         return (
-            ((events.Jet[:, 0].pt > 30.0) & (events.Jet[:, 1].pt > 30.0))
-            & (abs(events.detajj) >= 2.5)
-            & (events.mjj >= 150)
-            & (events.ptj1 >= 30)
-            & (events.ptj2 >= 30)
-            & (abs(events.Jet[:, 0].eta) < 5)
-            & (abs(events.Jet[:, 1].eta) < 5)
+            ((events.Jet[:, 0].pt > 25.0) & (events.Jet[:, 1].pt > 25.0))
+            & (abs(events.Jet[:, 0].deltaeta(events.Jet[:, 1])) > 4.5)
+            & ((events.Jet[:, 0] + events.Jet[:, 1]).mass > 600.0)
+            & (abs(events.Jet[:, 0].eta) < 4.5)
+            & (abs(events.Jet[:, 1].eta) < 4.5)
         )
 
     return {
@@ -275,7 +275,8 @@ def get_regions():
     }
 
 
-samples_for_nuis = [sample for sample in flat_samples if sample.endswith("sm")]
+# samples_for_nuis = [sample for sample in flat_samples if sample.endswith("sm")]
+samples_for_nuis = flat_samples
 
 
 def get_variations():
@@ -358,6 +359,7 @@ systematics = {
 
 
 # Plot config
+plot_label = "VBF HHjj"
 scales = ["lin", "log"][:1]
 plot_ylim_ratio = (None, None)
 
@@ -385,6 +387,7 @@ for op in samples["HHjj"]["eft"]["ops"]:
         "name": f"Lin {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
     plot[f"HHjj_quad_{op}"] = {
@@ -392,6 +395,7 @@ for op in samples["HHjj"]["eft"]["ops"]:
         "name": f"Quad {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
 

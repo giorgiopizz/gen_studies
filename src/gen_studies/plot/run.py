@@ -22,6 +22,7 @@ def main():
 
     plots = analysis_dict["plots"]
     scales = analysis_dict["scales"]
+    plot_label = analysis_dict["plot_label"]
     lumi = analysis_dict["lumi"]
     plot_ylim_ratio = analysis_dict["plot_ylim_ratio"]
 
@@ -59,6 +60,7 @@ def main():
                                 scale,
                                 formatted,
                                 lumi,
+                                plot_label,
                                 plot_ylim_ratio,
                             )
                         )

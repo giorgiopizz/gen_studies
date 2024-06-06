@@ -62,9 +62,17 @@ where you define different configuration variables.
 * `systematics`: a dictionary of the systematics of the analysis. They can take many variations as input and manipulate them
 
 ### Plot section
+* `plot_label`: the label that will be set on top of the plot
 * `scales`: the scale to use for the plots (`lin` and `log`)
 * `plot_ylim_ratio`: will set limits to the bottom pad, i.e. ratio, use `(None, None)` to let matplotlib figure out the limits
-* `plots`: a dictionary of `plot` where each plot configures which samples to use and other options
+* `plots`: a dictionary of `plot` where each plot configures which samples to use and other options. 
+
+    The single `plot` values dict must have this structure:
+    * `name`
+    * `color`
+    * `isSignal`
+    * `superimposed`: optional, default False. Use only for signals!
+    * `stacked`: optional, default True
 
 
 ### Fit section
@@ -72,6 +80,13 @@ where you define different configuration variables.
 * `npoints_fit_1d`: number of points for the grid scan in combine for 1D
 * `npoints_fit_2d`: number of points for the grid scan in combine for 2D (2 ops)
 * `structures` a dictionary of `structure` where each structure configures which samples to use and which are the signals or data
+
+    The single `structure` values dict must have this structure:
+    * `name`
+    * `isSignal`
+    * `isData`
+    * `noStat`: optional, default False
+
 * `structures_ops` a dictionary where for each structure above one defines the dictionary of operators with their ranges
 
 ## Scripts

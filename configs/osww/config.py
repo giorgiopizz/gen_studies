@@ -203,6 +203,7 @@ def get_regions():
     }
 
 
+# samples_for_nuis = flat_samples
 samples_for_nuis = [sample for sample in flat_samples if sample.endswith("sm")]
 
 
@@ -286,6 +287,7 @@ systematics = {
 
 
 # Plot config
+plot_label = "OSWW"
 scales = ["lin", "log"][:1]
 plot_ylim_ratio = (-0.5, 0.5)
 
@@ -307,6 +309,7 @@ for op in samples["OSWW"]["eft"]["ops"]:
         "name": f"Lin {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
     plot[f"OSWW_quad_{op}"] = {
@@ -314,6 +317,7 @@ for op in samples["OSWW"]["eft"]["ops"]:
         "name": f"Quad {op}",
         "isSignal": True,
         "superimposed": True,
+        "stacked": False,
     }
 
 # Fit config

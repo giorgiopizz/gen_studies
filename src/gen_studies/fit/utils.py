@@ -2,13 +2,12 @@ import os
 from textwrap import dedent
 
 import matplotlib as mpl
+import numpy as np
+import uproot
+from gen_studies.plot.utils import cmap, set_plot_header, set_plot_style
 
 mpl.use("Agg")
 import matplotlib.pyplot as plt
-import mplhep as hep
-import numpy as np
-import uproot
-from gen_studies.plot.utils import cmap
 
 
 def get_datacard_header(bin_name, data_integral):
@@ -125,6 +124,7 @@ def plot1d(
     ops,
     lumi,
     output_path,
+    plot_label,
 ):
     op = ops[0]
     x = file["limit"][f"k_{op}"].array().to_numpy()
@@ -140,6 +140,7 @@ def plot1d(
     x = x[mask]
     y = y[mask]
 
+    set_plot_style()
     fig, ax = plt.subplots(
         1,
         1,
@@ -148,7 +149,7 @@ def plot1d(
     )
     fig.tight_layout(pad=-0.5)
 
-    hep.cms.label("Work in progress", data=False, ax=ax, exp="", lumi=str(lumi))
+    set_plot_header(plot_label, ax, lumi)
 
     target = 1.0
     for target in [1.0, 3.84]:
@@ -200,6 +201,7 @@ def plot2d(
     ops,
     lumi,
     output_path,
+    plot_label,
 ):
     debug = True
     c1 = file["limit"][f"k_{ops[0]}"].array().to_numpy()
@@ -235,6 +237,7 @@ def plot2d(
     _, ind1, ind2 = np.intersect1d(arr1.view(dt1), arr2.view(dt2), return_indices=True)
     Z[ind1] = res[ind2].reshape(-1, 1)
 
+    set_plot_style()
     fig, ax = plt.subplots(
         1,
         1,
@@ -243,7 +246,7 @@ def plot2d(
     )
     fig.tight_layout(pad=-0.5)
 
-    hep.cms.label("Work in progress", data=False, ax=ax, exp="", lumi=str(lumi))
+    set_plot_header(plot_label, ax, lumi)
 
     if debug:
         im = ax.pcolormesh(x, y, Z.reshape(x.shape[0], y.shape[0]), vmin=0.0, vmax=100)

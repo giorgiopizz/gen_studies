@@ -24,6 +24,7 @@ def main():
     analysis_dict = analysis_cfg.__dict__  # type: ignore # noqa: F821
 
     lumi = analysis_dict["lumi"]
+    plot_label = analysis_dict["plot_label"]
     get_regions = analysis_dict["get_regions"]
     get_variables = analysis_dict["get_variables"]
     structures = analysis_dict["structures"]
@@ -45,7 +46,7 @@ def main():
                 filename = "higgsCombineTest.MultiDimFit.mH125.root"
                 file = uproot.open(f"{path}/{filename}")
                 if len(ops) == 1:
-                    plot1d(file, ops, lumi, output_path)
+                    plot1d(file, ops, lumi, output_path, plot_label)
                 else:
-                    plot2d(file, ops, lumi, output_path)
+                    plot2d(file, ops, lumi, output_path, plot_label)
                 file.close()
